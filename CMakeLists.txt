@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 include($ENV{cpp_lib_build_scripts_path}/cmake-module/setup.cmake)
 
-set(ProjectName freertos-gcc-cm7)
+set(ProjectName freertos)
 project(${ProjectName})
 
 enable_language(ASM)
