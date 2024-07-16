@@ -1,0 +1,28 @@
+---
+Language: Cpp
+BasedOnStyle: Microsoft
+
+IndentCaseLabels: false
+IndentCaseBlocks: true
+SortIncludes: CaseInsensitive
+PackConstructorInitializers: Never
+IndentPPDirectives: None
+
+BraceWrapping:
+	AfterClass: true
+	AfterUnion: true
+	BeforeLambdaBody: true
+	AfterControlStatement: Always
+	AfterEnum: true
+	AfterFunction: true
+	AfterNamespace: true
+	AfterStruct: true
+	AfterExternBlock: true
+	BeforeCatch: true
+	BeforeElse: true
+	AfterCaseLabel: true
+	IndentBraces: true
+	SplitEmptyFunction: true
+	SplitEmptyRecord: true
+	SplitEmptyNamespace: true
+---
