@@ -8,13 +8,17 @@ extern "C"
 #include <stdint.h>
 #include <stdio.h>
 
-	/// @brief 始终返回 Systick 的真实频率。
-	/// @warning 有些型号可能不支持让 Systick 与 CPU 不同频率，例如 stm32h743。
-	/// 所以对于这种型号，不要错误地将系统时钟频率除以 8 ，以为你配置的 8 分频会生效。
-	/// 记住，虽然你配置 8 分频，写入到 Systick 地 CTRL 寄存器地 bit2 中了，但是
-	/// 这不会生效。所以应该始终返回系统时钟频率，不要除以 8.
-	/// @return
-	uint32_t freertos_get_systic_clock_freq();
+	/// @brief 获取 SysTick 的频率
+	///
+	/// @param sync_to_cpu 是否同步到 CPU
+	/// 	@li 为 true 表示要获取 SysTick 同步到 CPU 频率时的频率，也即希望获取 CPU 频率。
+	/// 	@li 为 false 表示要获取的是 SysTick 不同步到 CPU 时的频率。例如对于 stm32f103，就是
+	/// 		获取系统时钟 8 分频后的频率。（系统时钟是 CPU 的时钟源，系统时钟频率等于 CPU 频率）
+	///
+	/// @return SysTick 在 sync_to_cpu 指示的模式下的频率。
+	/// 	@li 如果 sync_to_cpu 为 true ，返回 CPU 频率。
+	/// 	@li 如果 sync_to_cpu 为 false，返回与 CPU 频率不同的那个频率。
+	uint32_t freertos_get_systic_clock_freq(uint8_t sync_to_cpu);
 
 /* 1: 抢占式调度器, 0: 协程式调度器, 无默认需定义 */
 #define configUSE_PREEMPTION 1
@@ -25,25 +29,31 @@ extern "C"
 /* 1: 使能tickless低功耗模式, 默认: 0 */
 #define configUSE_TICKLESS_IDLE 0
 
-/* arm cortex-m 系列 CPU 有一个 Systick，里面有一个 CTRL 寄存器，bit2 可以用来控制 Systick ，里面有一个
- * 使用的时钟源。为 1 时表示使用与 CPU 相同的时钟源，即 Systick 的频率会与 CPU 相同。为 0 则表示不要求 Systick
- * 的频率与 CPU 相同。
- *
- * 所以 bit2 可以理解为同步控制位，置 1 后会让 Systick 时钟与 CPU 同步。
- *
- * 在 freertos 中，如果需要让 Systick 与 CPU 同步，则在下面一行宏定义中使用 定义 configCPU_CLOCK_HZ ，
- * 如果不要求 Systick 与 CPU 同步，则定义 configSYSTICK_CLOCK_HZ ，freertos 会根据你的定义去修改
- * Systick 的 CTRL 寄存器。
- *
- * 但是，无论是使用哪种模式， freertos_get_systic_clock_freq 函数始终应该返回 Systick 的实际频率。
- * 剩下的就交给 freertos。
- *
- * 注意：有的单片机无法让 Systick 使用与 CPU 不同频率的时钟源。例如 stm32h743，就算你将 Systick
- * 的 CTRL 寄存器的 bit2 设置为 0 ，它也会使用与 CPU 相同的系统时钟源，不会对它进行 8 分频。虽然 cubemx
- * 的时钟树上显示出了 8 分频，但是实际上是分不了的，配置好 8 分频后，cubemx 生成的代码中也没有关于 8 分频的
- * 代码。而且，经过实测，无论将 bit2 设置成什么，Systick 的频率一直等于系统时钟的频率，即与 CPU 同频率。
- */
-#define configCPU_CLOCK_HZ freertos_get_systic_clock_freq()
+	/* arm cortex-m 系列 CPU 有一个 Systick ，里面有一个 CTRL 寄存器，其中的 bit2
+	 * 可以用来控制 Systick 的时钟源。
+	 * 为 1 时表示使用与 CPU 相同的时钟源，即 Systick 的频率会与 CPU 相同。
+	 * 为 0 则表示不要求 Systick 的频率与 CPU 相同。
+	 *
+	 * 所以 bit2 可以理解为同步控制位，置 1 后会让 Systick 时钟与 CPU 同步。
+	 *
+	 * 在 freertos 中，如果需要让 Systick 与 CPU 同步，则宏定义 configCPU_CLOCK_HZ ，
+	 * 如果不要求 Systick 与 CPU 同步，则宏定义 configSYSTICK_CLOCK_HZ ，
+	 * freertos 会根据你的定义去修改 Systick 的 CTRL 寄存器。
+	 *
+	 * 注意：有的单片机无法让 Systick 使用与 CPU 不同频率的时钟源。例如 stm32h743，就算你将 Systick
+	 * 的 CTRL 寄存器的 bit2 设置为 0 ，它也会使用与 CPU 相同的系统时钟源，不会对它进行 8 分频。虽然 cubemx
+	 * 的时钟树上显示出了 8 分频，但是实际上是分不了的，配置好 8 分频后，cubemx 生成的代码中也没有关于 8 分频的
+	 * 代码。而且，经过实测，无论将 bit2 设置成什么，Systick 的频率一直等于系统时钟的频率，即与 CPU 同频率。
+	 */
+
+/* 是否让 Systick 的频率同步到 CPU 频率。 */
+#define SYNC_TO_CPU 1
+
+#if SYNC_TO_CPU
+#define configCPU_CLOCK_HZ freertos_get_systic_clock_freq(1)
+#else
+#define configSYSTICK_CLOCK_HZ freertos_get_systic_clock_freq(0)
+#endif
 
 /* 定义系统时钟节拍频率, 单位: Hz, 无默认需定义 */
 #define configTICK_RATE_HZ 1000
