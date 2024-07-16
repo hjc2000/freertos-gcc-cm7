@@ -8,16 +8,6 @@ extern "C"
 #include <stdint.h>
 #include <stdio.h>
 
-	/// <summary>
-	///		获取 CPU 频率
-	/// </summary>
-	/// <returns></returns>
-	uint32_t freertos_get_cpu_freq();
-
-	/// <summary>
-	///		获取硬件 systic 时钟频率。是最终输入计数器的那个频率，不是指分频器前面的那个。
-	/// </summary>
-	/// <returns></returns>
 	uint32_t freertos_get_systic_clock_freq();
 
 /* 1: 抢占式调度器, 0: 协程式调度器, 无默认需定义 */
@@ -30,7 +20,7 @@ extern "C"
 #define configUSE_TICKLESS_IDLE 0
 
 /* 定义CPU主频, 单位: Hz, 无默认需定义 */
-#define configCPU_CLOCK_HZ freertos_get_cpu_freq()
+// #define configCPU_CLOCK_HZ freertos_get_cpu_freq()
 #define configSYSTICK_CLOCK_HZ freertos_get_systic_clock_freq()
 
 /* 定义系统时钟节拍频率, 单位: Hz, 无默认需定义 */
