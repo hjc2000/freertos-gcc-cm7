@@ -8,6 +8,12 @@ extern "C"
 #include <stdint.h>
 #include <stdio.h>
 
+	/// @brief 始终返回 Systick 的真实频率。
+	/// @warning 有些型号可能不支持让 Systick 与 CPU 不同频率，例如 stm32h743。
+	/// 所以对于这种型号，不要错误地将系统时钟频率除以 8 ，以为你配置的 8 分频会生效。
+	/// 记住，虽然你配置 8 分频，写入到 Systick 地 CTRL 寄存器地 bit2 中了，但是
+	/// 这不会生效。所以应该始终返回系统时钟频率，不要除以 8.
+	/// @return
 	uint32_t freertos_get_systic_clock_freq();
 
 /* 1: 抢占式调度器, 0: 协程式调度器, 无默认需定义 */
