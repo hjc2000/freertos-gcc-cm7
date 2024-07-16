@@ -19,8 +19,7 @@ extern "C"
 /* 1: 使能tickless低功耗模式, 默认: 0 */
 #define configUSE_TICKLESS_IDLE 0
 
-/* 定义CPU主频, 单位: Hz, 无默认需定义 */
-// #define configCPU_CLOCK_HZ freertos_get_cpu_freq()
+/* 定义了 configSYSTICK_CLOCK_HZ 后无需定义 configCPU_CLOCK_HZ 了。*/
 #define configSYSTICK_CLOCK_HZ freertos_get_systic_clock_freq()
 
 /* 定义系统时钟节拍频率, 单位: Hz, 无默认需定义 */
