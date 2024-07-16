@@ -8,6 +8,7 @@ extern "C"
 #include <stdint.h>
 #include <stdio.h>
 
+#pragma region 接口函数
 	/// @brief 获取 SysTick 的频率
 	///
 	/// @param sync_to_cpu 是否同步到 CPU
@@ -19,6 +20,24 @@ extern "C"
 	/// 	@li 如果 sync_to_cpu 为 true ，返回 CPU 频率。
 	/// 	@li 如果 sync_to_cpu 为 false，返回与 CPU 频率不同的那个频率。
 	uint32_t freertos_get_systic_clock_freq(uint8_t sync_to_cpu);
+
+	/// @brief 位于 libfreertos.a 中的一个函数，并没有暴露到头文件中。
+	/// 用户需要在 SysTick 的溢出中断处理函数中调用。在 arm 工具链的启动文件中，
+	/// 这个函数被汇编确定为 SysTick_Handler ，用户需要定义这个函数并实现为类似：
+	/*
+
+		void SysTick_Handler()
+		{
+			HAL_IncTick();
+			if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+			{
+				xPortSysTickHandler();
+			}
+		}
+
+	*/
+	void xPortSysTickHandler();
+#pragma endregion
 
 /* 1: 抢占式调度器, 0: 协程式调度器, 无默认需定义 */
 #define configUSE_PREEMPTION 1
