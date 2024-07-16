@@ -8,6 +8,19 @@ extern "C"
 #include <stdint.h>
 #include <stdio.h>
 
+	/// @brief 获取 systic 频率。
+	/// @note 对于 arm CPU，有一个硬件的 Systic，freertos 初始化代码会设置它的寄存器，
+	/// 将它的时钟源设置为与 CPU 相同，即都来自系统时钟，而不是选择分频后的时钟信号。
+	/// 所以在实现本函数的时候需要返回系统时钟信号频率。
+	/// @note 在 port.c 中有一个 portNVIC_SYSTICK_CLK_BIT_CONFIG 宏，用来设置 Systic
+	/// 的 CTRL 寄存器的 bit2 从而时钟源。这个宏默认是 0，也就是会将 Systic 设置为与 CPU
+	/// 使用相同的时钟信号，不进行分频。
+	/// @note 如果一定要使用分频版本的时钟信号作为 Systic 的输入，需要在实现本函数时返回分频
+	/// 后的信号频率，此外，还要将 portNVIC_SYSTICK_CLK_BIT_CONFIG 宏修改为 1，避免 freertos
+	/// 覆盖了你的对  Systic 时钟源的设置。
+	/// @note 所以最好就是都别动，直接将本函数实现为返回 CPU 频率，然后 portNVIC_SYSTICK_CLK_BIT_CONFIG
+	/// 宏保持为 0.
+	/// @return
 	uint32_t freertos_get_systic_clock_freq();
 
 /* 1: 抢占式调度器, 0: 协程式调度器, 无默认需定义 */
