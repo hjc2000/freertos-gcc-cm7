@@ -11,4 +11,4 @@ set(CMAKE_C_STANDARD 99)
 add_library(${ProjectName})
 target_import_src(${ProjectName})
 
-set(CMAKE_INSTALL_PREFIX ${cpp_lib_build_scripts_path}/${platform}/.libs/${ProjectName}/)
+set(CMAKE_INSTALL_PREFIX $ENV{cpp_lib_build_scripts_path}/${platform}/.libs/${ProjectName}/)
