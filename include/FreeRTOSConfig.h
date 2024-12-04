@@ -78,7 +78,7 @@ extern "C"
 #define configTICK_RATE_HZ 1000
 
 /* 定义最大优先级数, 最大优先级=configMAX_PRIORITIES-1, 无默认需定义 */
-#define configMAX_PRIORITIES 32
+#define configMAX_PRIORITIES 56
 
 /* 定义空闲任务的栈空间大小, 单位: Word, 无默认需定义 */
 #define configMINIMAL_STACK_SIZE 128
