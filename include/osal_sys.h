@@ -26,8 +26,6 @@ extern "C"
 {
 #endif
 
-#define OS_MAIN extern "C" int _main
-
 #define OS_THREAD
 #define OS_MUTEX
 #define OS_SEM
