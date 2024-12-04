@@ -16,13 +16,14 @@
 #ifndef OSAL_SYS_H
 #define OSAL_SYS_H
 
-#include <FreeRTOS.h>
-#include <semphr.h>
+#include "FreeRTOS.h"
 #include <event_groups.h>
 #include <queue.h>
+#include <semphr.h>
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #define OS_MAIN extern "C" int _main
@@ -34,19 +35,19 @@ extern "C" {
 #define OS_MBOX
 #define OS_TIMER
 
-typedef SemaphoreHandle_t os_mutex_t;
-typedef TaskHandle_t os_thread_t;
-typedef SemaphoreHandle_t os_sem_t;
-typedef EventGroupHandle_t  os_event_t;
-typedef QueueHandle_t os_mbox_t;
+    typedef SemaphoreHandle_t os_mutex_t;
+    typedef TaskHandle_t os_thread_t;
+    typedef SemaphoreHandle_t os_sem_t;
+    typedef EventGroupHandle_t os_event_t;
+    typedef QueueHandle_t os_mbox_t;
 
-typedef struct os_timer
-{
-   TimerHandle_t handle;
-   void(*fn) (struct os_timer *, void * arg);
-   void * arg;
-   uint32_t us;
-} os_timer_t;
+    typedef struct os_timer
+    {
+        TimerHandle_t handle;
+        void (*fn)(struct os_timer *, void *arg);
+        void *arg;
+        uint32_t us;
+    } os_timer_t;
 
 #ifdef __cplusplus
 }
