@@ -13,8 +13,7 @@
  * full license information.
  ********************************************************************/
 
-#include "osal.h"
-
+#include <osal.h>
 #include <stdio.h>
 #include <stdlib.h>
 
