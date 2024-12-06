@@ -1,14 +1,14 @@
 #include "FreeRTOS.h"
 #include "task.h"
+#include <bsp-interface/di/interrupt.h>
 #include <cstddef>
-#include <hal.h>
 #include <new>
 
 void *operator new(size_t size)
 {
-    __disable_irq();
+    DI_DisableGlobalInterrupt();
     void *ptr = pvPortMalloc(size);
-    __enable_irq();
+    DI_EnableGlobalInterrupt();
     if (ptr == nullptr)
     {
         throw std::bad_alloc{};
@@ -19,9 +19,9 @@ void *operator new(size_t size)
 
 void *operator new[](size_t size)
 {
-    __disable_irq();
+    DI_DisableGlobalInterrupt();
     void *ptr = pvPortMalloc(size);
-    __enable_irq();
+    DI_EnableGlobalInterrupt();
     if (ptr == nullptr)
     {
         throw std::bad_alloc{};
@@ -32,58 +32,58 @@ void *operator new[](size_t size)
 
 void operator delete(void *ptr) noexcept
 {
-    __disable_irq();
+    DI_DisableGlobalInterrupt();
     vPortFree(ptr);
-    __enable_irq();
+    DI_EnableGlobalInterrupt();
 }
 
 void operator delete[](void *ptr) noexcept
 {
-    __disable_irq();
+    DI_DisableGlobalInterrupt();
     vPortFree(ptr);
-    __enable_irq();
+    DI_EnableGlobalInterrupt();
 }
 
 void *operator new(size_t size, std::nothrow_t const &) noexcept
 {
-    __disable_irq();
+    DI_DisableGlobalInterrupt();
     void *p = pvPortMalloc(size);
-    __enable_irq();
+    DI_EnableGlobalInterrupt();
     return p;
 }
 
 void *operator new[](size_t size, std::nothrow_t const &) noexcept
 {
-    __disable_irq();
+    DI_DisableGlobalInterrupt();
     void *p = pvPortMalloc(size);
-    __enable_irq();
+    DI_EnableGlobalInterrupt();
     return p;
 }
 
 void operator delete(void *ptr, std::nothrow_t const &) noexcept
 {
-    __disable_irq();
+    DI_DisableGlobalInterrupt();
     vPortFree(ptr);
-    __enable_irq();
+    DI_EnableGlobalInterrupt();
 }
 
 void operator delete[](void *ptr, std::nothrow_t const &) noexcept
 {
-    __disable_irq();
+    DI_DisableGlobalInterrupt();
     vPortFree(ptr);
-    __enable_irq();
+    DI_EnableGlobalInterrupt();
 }
 
 void operator delete(void *ptr, size_t size) noexcept
 {
-    __disable_irq();
+    DI_DisableGlobalInterrupt();
     vPortFree(ptr);
-    __enable_irq();
+    DI_EnableGlobalInterrupt();
 }
 
 void operator delete[](void *ptr, size_t size) noexcept
 {
-    __disable_irq();
+    DI_DisableGlobalInterrupt();
     vPortFree(ptr);
-    __enable_irq();
+    DI_EnableGlobalInterrupt();
 }
