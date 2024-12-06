@@ -11,7 +11,7 @@ void *operator new(size_t size)
     __enable_irq();
     if (ptr == nullptr)
     {
-        throw std::bad_alloc();
+        throw std::bad_alloc{};
     }
 
     return ptr;
@@ -24,7 +24,7 @@ void *operator new[](size_t size)
     __enable_irq();
     if (ptr == nullptr)
     {
-        throw std::bad_alloc();
+        throw std::bad_alloc{};
     }
 
     return ptr;
