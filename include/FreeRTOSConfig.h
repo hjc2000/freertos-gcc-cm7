@@ -142,7 +142,7 @@ extern "C"
 #define configSUPPORT_DYNAMIC_ALLOCATION 1
 
 /* FreeRTOS堆中可用的RAM总量, 单位: Byte, 无默认需定义 */
-#define configTOTAL_HEAP_SIZE ((size_t)(20 * 1024))
+#define configTOTAL_HEAP_SIZE ((size_t)(200 * 1024))
 
 /* 1: 用户手动分配FreeRTOS内存堆(ucHeap), 默认: 0 */
 #define configAPPLICATION_ALLOCATED_HEAP 0
