@@ -82,9 +82,18 @@ namespace
      * the allocation status of a block.  When MSB of the xBlockSize member of
      * an BlockLink_t structure is set then the block belongs to the application.
      * When the bit is free the block is still part of the free heap space. */
-#define heapBLOCK_ALLOCATED_BITMASK (((size_t)1) << ((sizeof(size_t) * heapBITS_PER_BYTE) - 1))
-#define heapBLOCK_SIZE_IS_VALID(xBlockSize) (((xBlockSize) & heapBLOCK_ALLOCATED_BITMASK) == 0)
-#define heapBLOCK_IS_ALLOCATED(pxBlock) (((pxBlock->xBlockSize) & heapBLOCK_ALLOCATED_BITMASK) != 0)
+    size_t const heapBLOCK_ALLOCATED_BITMASK = (((size_t)1) << ((sizeof(size_t) * heapBITS_PER_BYTE) - 1));
+
+    inline bool heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
+    {
+        return (((xBlockSize)&heapBLOCK_ALLOCATED_BITMASK) == 0);
+    }
+
+    inline bool heapBLOCK_IS_ALLOCATED(BlockLink_t *pxBlock)
+    {
+        return (((pxBlock->xBlockSize) & heapBLOCK_ALLOCATED_BITMASK) != 0);
+    }
+
 #define heapALLOCATE_BLOCK(pxBlock) ((pxBlock->xBlockSize) |= heapBLOCK_ALLOCATED_BITMASK)
 #define heapFREE_BLOCK(pxBlock) ((pxBlock->xBlockSize) &= ~heapBLOCK_ALLOCATED_BITMASK)
 
