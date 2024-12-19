@@ -104,17 +104,17 @@ namespace
         ((pxBlock->xBlockSize) &= ~heapBLOCK_ALLOCATED_BITMASK);
     }
 
-} // namespace
+    /* Check if multiplying a and b will result in overflow. */
+    inline bool heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
+    {
+        return (((a) > 0) && ((b) > (heapSIZE_MAX / (a))));
+    }
 
-extern "C"
-{
-/* Check if multiplying a and b will result in overflow. */
-#define heapMULTIPLY_WILL_OVERFLOW(a, b) (((a) > 0) && ((b) > (heapSIZE_MAX / (a))))
-
-/* Check if adding a and b will result in overflow. */
-#define heapADD_WILL_OVERFLOW(a, b) ((a) > (heapSIZE_MAX - (b)))
-
-/*-----------------------------------------------------------*/
+    /* Check if adding a and b will result in overflow. */
+    inline bool heapADD_WILL_OVERFLOW(size_t a, size_t b)
+    {
+        return ((a) > (heapSIZE_MAX - (b)));
+    }
 
 /* Allocate the memory for the heap. */
 #if (configAPPLICATION_ALLOCATED_HEAP == 1)
@@ -126,8 +126,10 @@ extern "C"
     PRIVILEGED_DATA static uint8_t ucHeap[configTOTAL_HEAP_SIZE];
 #endif /* configAPPLICATION_ALLOCATED_HEAP */
 
-    /*-----------------------------------------------------------*/
+} // namespace
 
+extern "C"
+{
     /*
      * Inserts a block of memory that is being freed into the correct position in
      * the list of free memory blocks.  The block being freed will be merged with
