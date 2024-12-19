@@ -94,8 +94,15 @@ namespace
         return (((pxBlock->xBlockSize) & heapBLOCK_ALLOCATED_BITMASK) != 0);
     }
 
-#define heapALLOCATE_BLOCK(pxBlock) ((pxBlock->xBlockSize) |= heapBLOCK_ALLOCATED_BITMASK)
-#define heapFREE_BLOCK(pxBlock) ((pxBlock->xBlockSize) &= ~heapBLOCK_ALLOCATED_BITMASK)
+    inline void heapALLOCATE_BLOCK(BlockLink_t *pxBlock)
+    {
+        ((pxBlock->xBlockSize) |= heapBLOCK_ALLOCATED_BITMASK);
+    }
+
+    inline void heapFREE_BLOCK(BlockLink_t *pxBlock)
+    {
+        ((pxBlock->xBlockSize) &= ~heapBLOCK_ALLOCATED_BITMASK);
+    }
 
 } // namespace
 
