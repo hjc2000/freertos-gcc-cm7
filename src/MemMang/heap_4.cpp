@@ -57,6 +57,13 @@
 
 namespace
 {
+    /* Keeps track of the number of calls to allocate and free memory as well as the
+     * number of free bytes remaining, but says nothing about fragmentation. */
+    PRIVILEGED_DATA static size_t xFreeBytesRemaining = 0U;
+    PRIVILEGED_DATA static size_t xMinimumEverFreeBytesRemaining = 0U;
+    PRIVILEGED_DATA static size_t xNumberOfSuccessfulAllocations = 0;
+    PRIVILEGED_DATA static size_t xNumberOfSuccessfulFrees = 0;
+
     /* Assumes 8bit bytes! */
     size_t const heapBITS_PER_BYTE = ((size_t)8);
 
@@ -80,7 +87,21 @@ namespace
         {
             return (xBlockSize & heapBLOCK_ALLOCATED_BITMASK) != 0;
         }
+
+        inline void heapALLOCATE_BLOCK()
+        {
+            xBlockSize |= heapBLOCK_ALLOCATED_BITMASK;
+        }
+
+        inline void heapFREE_BLOCK()
+        {
+            xBlockSize &= ~heapBLOCK_ALLOCATED_BITMASK;
+        }
     };
+
+    /* Create a couple of list links to mark the start and end of the list. */
+    PRIVILEGED_DATA static BlockLink_t xStart;
+    PRIVILEGED_DATA static BlockLink_t *pxEnd = NULL;
 
     /* The size of the structure placed at the beginning of each allocated memory
      * block must by correctly byte aligned. */
@@ -92,16 +113,6 @@ namespace
     inline bool heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
     {
         return (((xBlockSize)&heapBLOCK_ALLOCATED_BITMASK) == 0);
-    }
-
-    inline void heapALLOCATE_BLOCK(BlockLink_t *pxBlock)
-    {
-        ((pxBlock->xBlockSize) |= heapBLOCK_ALLOCATED_BITMASK);
-    }
-
-    inline void heapFREE_BLOCK(BlockLink_t *pxBlock)
-    {
-        ((pxBlock->xBlockSize) &= ~heapBLOCK_ALLOCATED_BITMASK);
     }
 
     /* Check if multiplying a and b will result in overflow. */
@@ -143,21 +154,6 @@ extern "C"
      * pvPortMalloc() is called.
      */
     static void prvHeapInit(void) PRIVILEGED_FUNCTION;
-
-    /*-----------------------------------------------------------*/
-
-    /* Create a couple of list links to mark the start and end of the list. */
-    PRIVILEGED_DATA static BlockLink_t xStart;
-    PRIVILEGED_DATA static BlockLink_t *pxEnd = NULL;
-
-    /* Keeps track of the number of calls to allocate and free memory as well as the
-     * number of free bytes remaining, but says nothing about fragmentation. */
-    PRIVILEGED_DATA static size_t xFreeBytesRemaining = 0U;
-    PRIVILEGED_DATA static size_t xMinimumEverFreeBytesRemaining = 0U;
-    PRIVILEGED_DATA static size_t xNumberOfSuccessfulAllocations = 0;
-    PRIVILEGED_DATA static size_t xNumberOfSuccessfulFrees = 0;
-
-    /*-----------------------------------------------------------*/
 
     void *pvPortMalloc(size_t xWantedSize)
     {
@@ -270,7 +266,7 @@ extern "C"
 
                         /* The block is being returned - it is allocated and owned
                          * by the application and has no "next" block. */
-                        heapALLOCATE_BLOCK(pxBlock);
+                        pxBlock->heapALLOCATE_BLOCK();
                         pxBlock->pxNextFreeBlock = NULL;
                         xNumberOfSuccessfulAllocations++;
                     }
@@ -336,7 +332,7 @@ extern "C"
                 {
                     /* The block is being returned to the heap - it is no longer
                      * allocated. */
-                    heapFREE_BLOCK(pxLink);
+                    pxLink->heapFREE_BLOCK();
 
 #if (configHEAP_CLEAR_MEMORY_ON_FREE == 1)
                     {
