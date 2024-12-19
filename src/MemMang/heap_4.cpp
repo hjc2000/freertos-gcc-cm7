@@ -1,5 +1,7 @@
 #include "heap_4.h"
 
+void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert); /* PRIVILEGED_FUNCTION */
+
 bool freertos::BlockLink_t::heapBLOCK_IS_ALLOCATED()
 {
     return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) != 0;
@@ -74,6 +76,158 @@ bool freertos::FreertosHeap4::heapADD_WILL_OVERFLOW(size_t a, size_t b)
     return a > (heapSIZE_MAX - b);
 }
 
+void *freertos::FreertosHeap4::Malloc(size_t xWantedSize)
+{
+    freertos::BlockLink_t *pxBlock;
+    freertos::BlockLink_t *pxPreviousBlock;
+    freertos::BlockLink_t *pxNewBlockLink;
+    void *pvReturn = NULL;
+    size_t xAdditionalRequiredSize;
+
+    vTaskSuspendAll();
+
+    {
+        /* If this is the first call to malloc then the heap will require
+         * initialisation to setup the list of free blocks. */
+        if (pxEnd == NULL)
+        {
+            // prvHeapInit();
+        }
+        else
+        {
+            mtCOVERAGE_TEST_MARKER();
+        }
+
+        if (xWantedSize > 0)
+        {
+            /* The wanted size must be increased so it can contain a BlockLink_t
+             * structure in addition to the requested amount of bytes. Some
+             * additional increment may also be needed for alignment. */
+            xAdditionalRequiredSize = freertos::FreertosHeap4::heap_struct_size + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
+
+            if (freertos::FreertosHeap4::heapADD_WILL_OVERFLOW(xWantedSize, xAdditionalRequiredSize) == 0)
+            {
+                xWantedSize += xAdditionalRequiredSize;
+            }
+            else
+            {
+                xWantedSize = 0;
+            }
+        }
+        else
+        {
+            mtCOVERAGE_TEST_MARKER();
+        }
+
+        /* Check the block size we are trying to allocate is not so large that the
+         * top bit is set.  The top bit of the block size member of the BlockLink_t
+         * structure is used to determine who owns the block - the application or
+         * the kernel, so it must be free. */
+        if (freertos::FreertosHeap4::heapBLOCK_SIZE_IS_VALID(xWantedSize) != 0)
+        {
+            if ((xWantedSize > 0) && (xWantedSize <= xFreeBytesRemaining))
+            {
+                /* Traverse the list from the start (lowest address) block until
+                 * one of adequate size is found. */
+                pxPreviousBlock = &xStart;
+                pxBlock = xStart.pxNextFreeBlock;
+
+                while ((pxBlock->xBlockSize < xWantedSize) && (pxBlock->pxNextFreeBlock != NULL))
+                {
+                    pxPreviousBlock = pxBlock;
+                    pxBlock = pxBlock->pxNextFreeBlock;
+                }
+
+                /* If the end marker was reached then a block of adequate size
+                 * was not found. */
+                if (pxBlock != pxEnd)
+                {
+                    /* Return the memory space pointed to - jumping over the
+                     * BlockLink_t structure at its start. */
+                    pvReturn = (void *)(((uint8_t *)pxPreviousBlock->pxNextFreeBlock) + freertos::FreertosHeap4::heap_struct_size);
+
+                    /* This block is being returned for use so must be taken out
+                     * of the list of free blocks. */
+                    pxPreviousBlock->pxNextFreeBlock = pxBlock->pxNextFreeBlock;
+
+                    /* If the block is larger than required it can be split into
+                     * two. */
+                    if ((pxBlock->xBlockSize - xWantedSize) > freertos::FreertosHeap4::heap_minimum_block_size)
+                    {
+                        /* This block is to be split into two.  Create a new
+                         * block following the number of bytes requested. The void
+                         * cast is used to prevent byte alignment warnings from the
+                         * compiler. */
+                        pxNewBlockLink = (freertos::BlockLink_t *)(((uint8_t *)pxBlock) + xWantedSize);
+                        configASSERT((((size_t)pxNewBlockLink) & portBYTE_ALIGNMENT_MASK) == 0);
+
+                        /* Calculate the sizes of two blocks split from the
+                         * single block. */
+                        pxNewBlockLink->xBlockSize = pxBlock->xBlockSize - xWantedSize;
+                        pxBlock->xBlockSize = xWantedSize;
+
+                        /* Insert the new block into the list of free blocks. */
+                        prvInsertBlockIntoFreeList(pxNewBlockLink);
+                    }
+                    else
+                    {
+                        mtCOVERAGE_TEST_MARKER();
+                    }
+
+                    xFreeBytesRemaining -= pxBlock->xBlockSize;
+
+                    if (xFreeBytesRemaining < xMinimumEverFreeBytesRemaining)
+                    {
+                        xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;
+                    }
+                    else
+                    {
+                        mtCOVERAGE_TEST_MARKER();
+                    }
+
+                    /* The block is being returned - it is allocated and owned
+                     * by the application and has no "next" block. */
+                    pxBlock->heapALLOCATE_BLOCK();
+                    pxBlock->pxNextFreeBlock = NULL;
+                    xNumberOfSuccessfulAllocations++;
+                }
+                else
+                {
+                    mtCOVERAGE_TEST_MARKER();
+                }
+            }
+            else
+            {
+                mtCOVERAGE_TEST_MARKER();
+            }
+        }
+        else
+        {
+            mtCOVERAGE_TEST_MARKER();
+        }
+
+        traceMALLOC(pvReturn, xWantedSize);
+    }
+
+    (void)xTaskResumeAll();
+
+#if (configUSE_MALLOC_FAILED_HOOK == 1)
+    {
+        if (pvReturn == NULL)
+        {
+            vApplicationMallocFailedHook();
+        }
+        else
+        {
+            mtCOVERAGE_TEST_MARKER();
+        }
+    }
+#endif /* if ( configUSE_MALLOC_FAILED_HOOK == 1 ) */
+
+    configASSERT((((size_t)pvReturn) & (size_t)portBYTE_ALIGNMENT_MASK) == 0);
+    return pvReturn;
+}
+
 namespace
 {
 /* Allocate the memory for the heap. */
@@ -92,164 +246,9 @@ namespace
 
 extern "C"
 {
-    /*
-     * Inserts a block of memory that is being freed into the correct position in
-     * the list of free memory blocks.  The block being freed will be merged with
-     * the block in front it and/or the block behind it if the memory blocks are
-     * adjacent to each other.
-     */
-    static void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert) PRIVILEGED_FUNCTION;
-
     void *pvPortMalloc(size_t xWantedSize)
     {
-        freertos::BlockLink_t *pxBlock;
-        freertos::BlockLink_t *pxPreviousBlock;
-        freertos::BlockLink_t *pxNewBlockLink;
-        void *pvReturn = NULL;
-        size_t xAdditionalRequiredSize;
-
-        vTaskSuspendAll();
-
-        {
-            /* If this is the first call to malloc then the heap will require
-             * initialisation to setup the list of free blocks. */
-            if (_heap4.pxEnd == NULL)
-            {
-                // prvHeapInit();
-            }
-            else
-            {
-                mtCOVERAGE_TEST_MARKER();
-            }
-
-            if (xWantedSize > 0)
-            {
-                /* The wanted size must be increased so it can contain a BlockLink_t
-                 * structure in addition to the requested amount of bytes. Some
-                 * additional increment may also be needed for alignment. */
-                xAdditionalRequiredSize = freertos::FreertosHeap4::heap_struct_size + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
-
-                if (freertos::FreertosHeap4::heapADD_WILL_OVERFLOW(xWantedSize, xAdditionalRequiredSize) == 0)
-                {
-                    xWantedSize += xAdditionalRequiredSize;
-                }
-                else
-                {
-                    xWantedSize = 0;
-                }
-            }
-            else
-            {
-                mtCOVERAGE_TEST_MARKER();
-            }
-
-            /* Check the block size we are trying to allocate is not so large that the
-             * top bit is set.  The top bit of the block size member of the BlockLink_t
-             * structure is used to determine who owns the block - the application or
-             * the kernel, so it must be free. */
-            if (freertos::FreertosHeap4::heapBLOCK_SIZE_IS_VALID(xWantedSize) != 0)
-            {
-                if ((xWantedSize > 0) && (xWantedSize <= _heap4.xFreeBytesRemaining))
-                {
-                    /* Traverse the list from the start (lowest address) block until
-                     * one of adequate size is found. */
-                    pxPreviousBlock = &_heap4.xStart;
-                    pxBlock = _heap4.xStart.pxNextFreeBlock;
-
-                    while ((pxBlock->xBlockSize < xWantedSize) && (pxBlock->pxNextFreeBlock != NULL))
-                    {
-                        pxPreviousBlock = pxBlock;
-                        pxBlock = pxBlock->pxNextFreeBlock;
-                    }
-
-                    /* If the end marker was reached then a block of adequate size
-                     * was not found. */
-                    if (pxBlock != _heap4.pxEnd)
-                    {
-                        /* Return the memory space pointed to - jumping over the
-                         * BlockLink_t structure at its start. */
-                        pvReturn = (void *)(((uint8_t *)pxPreviousBlock->pxNextFreeBlock) + freertos::FreertosHeap4::heap_struct_size);
-
-                        /* This block is being returned for use so must be taken out
-                         * of the list of free blocks. */
-                        pxPreviousBlock->pxNextFreeBlock = pxBlock->pxNextFreeBlock;
-
-                        /* If the block is larger than required it can be split into
-                         * two. */
-                        if ((pxBlock->xBlockSize - xWantedSize) > freertos::FreertosHeap4::heap_minimum_block_size)
-                        {
-                            /* This block is to be split into two.  Create a new
-                             * block following the number of bytes requested. The void
-                             * cast is used to prevent byte alignment warnings from the
-                             * compiler. */
-                            pxNewBlockLink = (freertos::BlockLink_t *)(((uint8_t *)pxBlock) + xWantedSize);
-                            configASSERT((((size_t)pxNewBlockLink) & portBYTE_ALIGNMENT_MASK) == 0);
-
-                            /* Calculate the sizes of two blocks split from the
-                             * single block. */
-                            pxNewBlockLink->xBlockSize = pxBlock->xBlockSize - xWantedSize;
-                            pxBlock->xBlockSize = xWantedSize;
-
-                            /* Insert the new block into the list of free blocks. */
-                            prvInsertBlockIntoFreeList(pxNewBlockLink);
-                        }
-                        else
-                        {
-                            mtCOVERAGE_TEST_MARKER();
-                        }
-
-                        _heap4.xFreeBytesRemaining -= pxBlock->xBlockSize;
-
-                        if (_heap4.xFreeBytesRemaining < _heap4.xMinimumEverFreeBytesRemaining)
-                        {
-                            _heap4.xMinimumEverFreeBytesRemaining = _heap4.xFreeBytesRemaining;
-                        }
-                        else
-                        {
-                            mtCOVERAGE_TEST_MARKER();
-                        }
-
-                        /* The block is being returned - it is allocated and owned
-                         * by the application and has no "next" block. */
-                        pxBlock->heapALLOCATE_BLOCK();
-                        pxBlock->pxNextFreeBlock = NULL;
-                        _heap4.xNumberOfSuccessfulAllocations++;
-                    }
-                    else
-                    {
-                        mtCOVERAGE_TEST_MARKER();
-                    }
-                }
-                else
-                {
-                    mtCOVERAGE_TEST_MARKER();
-                }
-            }
-            else
-            {
-                mtCOVERAGE_TEST_MARKER();
-            }
-
-            traceMALLOC(pvReturn, xWantedSize);
-        }
-
-        (void)xTaskResumeAll();
-
-#if (configUSE_MALLOC_FAILED_HOOK == 1)
-        {
-            if (pvReturn == NULL)
-            {
-                vApplicationMallocFailedHook();
-            }
-            else
-            {
-                mtCOVERAGE_TEST_MARKER();
-            }
-        }
-#endif /* if ( configUSE_MALLOC_FAILED_HOOK == 1 ) */
-
-        configASSERT((((size_t)pvReturn) & (size_t)portBYTE_ALIGNMENT_MASK) == 0);
-        return pvReturn;
+        return _heap4.Malloc(xWantedSize);
     }
 
     /*-----------------------------------------------------------*/
@@ -347,68 +346,6 @@ extern "C"
         return pv;
     }
 
-    static void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
-    {
-        freertos::BlockLink_t *pxIterator;
-        uint8_t *puc;
-
-        /* Iterate through the list until a block is found that has a higher address
-         * than the block being inserted. */
-        for (pxIterator = &_heap4.xStart; pxIterator->pxNextFreeBlock < pxBlockToInsert; pxIterator = pxIterator->pxNextFreeBlock)
-        {
-            /* Nothing to do here, just iterate to the right position. */
-        }
-
-        /* Do the block being inserted, and the block it is being inserted after
-         * make a contiguous block of memory? */
-        puc = (uint8_t *)pxIterator;
-
-        if ((puc + pxIterator->xBlockSize) == (uint8_t *)pxBlockToInsert)
-        {
-            pxIterator->xBlockSize += pxBlockToInsert->xBlockSize;
-            pxBlockToInsert = pxIterator;
-        }
-        else
-        {
-            mtCOVERAGE_TEST_MARKER();
-        }
-
-        /* Do the block being inserted, and the block it is being inserted before
-         * make a contiguous block of memory? */
-        puc = (uint8_t *)pxBlockToInsert;
-
-        if ((puc + pxBlockToInsert->xBlockSize) == (uint8_t *)pxIterator->pxNextFreeBlock)
-        {
-            if (pxIterator->pxNextFreeBlock != _heap4.pxEnd)
-            {
-                /* Form one big block from the two blocks. */
-                pxBlockToInsert->xBlockSize += pxIterator->pxNextFreeBlock->xBlockSize;
-                pxBlockToInsert->pxNextFreeBlock = pxIterator->pxNextFreeBlock->pxNextFreeBlock;
-            }
-            else
-            {
-                pxBlockToInsert->pxNextFreeBlock = _heap4.pxEnd;
-            }
-        }
-        else
-        {
-            pxBlockToInsert->pxNextFreeBlock = pxIterator->pxNextFreeBlock;
-        }
-
-        /* If the block being inserted plugged a gab, so was merged with the block
-         * before and the block after, then it's pxNextFreeBlock pointer will have
-         * already been set, and should not be set here as that would make it point
-         * to itself. */
-        if (pxIterator != pxBlockToInsert)
-        {
-            pxIterator->pxNextFreeBlock = pxBlockToInsert;
-        }
-        else
-        {
-            mtCOVERAGE_TEST_MARKER();
-        }
-    }
-
     /*-----------------------------------------------------------*/
 
     void vPortGetHeapStats(HeapStats_t *pxHeapStats)
@@ -460,5 +397,73 @@ extern "C"
             pxHeapStats->xMinimumEverFreeBytesRemaining = _heap4.xMinimumEverFreeBytesRemaining;
         }
         taskEXIT_CRITICAL();
+    }
+}
+
+/*
+ * Inserts a block of memory that is being freed into the correct position in
+ * the list of free memory blocks.  The block being freed will be merged with
+ * the block in front it and/or the block behind it if the memory blocks are
+ * adjacent to each other.
+ */
+void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
+{
+    freertos::BlockLink_t *pxIterator;
+    uint8_t *puc;
+
+    /* Iterate through the list until a block is found that has a higher address
+     * than the block being inserted. */
+    for (pxIterator = &_heap4.xStart; pxIterator->pxNextFreeBlock < pxBlockToInsert; pxIterator = pxIterator->pxNextFreeBlock)
+    {
+        /* Nothing to do here, just iterate to the right position. */
+    }
+
+    /* Do the block being inserted, and the block it is being inserted after
+     * make a contiguous block of memory? */
+    puc = (uint8_t *)pxIterator;
+
+    if ((puc + pxIterator->xBlockSize) == (uint8_t *)pxBlockToInsert)
+    {
+        pxIterator->xBlockSize += pxBlockToInsert->xBlockSize;
+        pxBlockToInsert = pxIterator;
+    }
+    else
+    {
+        mtCOVERAGE_TEST_MARKER();
+    }
+
+    /* Do the block being inserted, and the block it is being inserted before
+     * make a contiguous block of memory? */
+    puc = (uint8_t *)pxBlockToInsert;
+
+    if ((puc + pxBlockToInsert->xBlockSize) == (uint8_t *)pxIterator->pxNextFreeBlock)
+    {
+        if (pxIterator->pxNextFreeBlock != _heap4.pxEnd)
+        {
+            /* Form one big block from the two blocks. */
+            pxBlockToInsert->xBlockSize += pxIterator->pxNextFreeBlock->xBlockSize;
+            pxBlockToInsert->pxNextFreeBlock = pxIterator->pxNextFreeBlock->pxNextFreeBlock;
+        }
+        else
+        {
+            pxBlockToInsert->pxNextFreeBlock = _heap4.pxEnd;
+        }
+    }
+    else
+    {
+        pxBlockToInsert->pxNextFreeBlock = pxIterator->pxNextFreeBlock;
+    }
+
+    /* If the block being inserted plugged a gab, so was merged with the block
+     * before and the block after, then it's pxNextFreeBlock pointer will have
+     * already been set, and should not be set here as that would make it point
+     * to itself. */
+    if (pxIterator != pxBlockToInsert)
+    {
+        pxIterator->pxNextFreeBlock = pxBlockToInsert;
+    }
+    else
+    {
+        mtCOVERAGE_TEST_MARKER();
     }
 }

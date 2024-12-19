@@ -78,5 +78,7 @@ namespace freertos
 
         /* Check if adding a and b will result in overflow. */
         static bool heapADD_WILL_OVERFLOW(size_t a, size_t b);
+
+        void *Malloc(size_t xWantedSize);
     };
 } // namespace freertos
