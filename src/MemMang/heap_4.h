@@ -42,16 +42,23 @@ namespace freertos
         FreertosHeap4();
 
         /* Assumes 8bit bytes! */
-        inline static size_t const heapBITS_PER_BYTE = ((size_t)8);
+        static size_t const heapBITS_PER_BYTE = ((size_t)8);
 
         /* Max value that fits in a size_t type. */
-        inline static size_t const heapSIZE_MAX = (~((size_t)0));
+        static size_t const heapSIZE_MAX = (~((size_t)0));
 
         /* MSB of the xBlockSize member of an BlockLink_t structure is used to track
          * the allocation status of a block.  When MSB of the xBlockSize member of
          * an BlockLink_t structure is set then the block belongs to the application.
          * When the bit is free the block is still part of the free heap space. */
-        inline static size_t const heapBLOCK_ALLOCATED_BITMASK = (((size_t)1) << ((sizeof(size_t) * heapBITS_PER_BYTE) - 1));
+        static size_t const heapBLOCK_ALLOCATED_BITMASK = (((size_t)1) << ((sizeof(size_t) * heapBITS_PER_BYTE) - 1));
+
+        /* The size of the structure placed at the beginning of each allocated memory
+         * block must by correctly byte aligned. */
+        static size_t const heap_struct_size = (sizeof(freertos::BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
+
+        /* Block sizes must not get too small. */
+        static size_t const heap_minimum_block_size = ((size_t)(heap_struct_size << 1));
 
         /* Keeps track of the number of calls to allocate and free memory as well as the
          * number of free bytes remaining, but says nothing about fragmentation. */

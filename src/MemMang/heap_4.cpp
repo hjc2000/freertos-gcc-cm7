@@ -4,13 +4,6 @@ namespace
 {
     freertos::FreertosHeap4 _heap4;
 
-    /* The size of the structure placed at the beginning of each allocated memory
-     * block must by correctly byte aligned. */
-    size_t const heap_struct_size = (sizeof(freertos::BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
-
-    /* Block sizes must not get too small. */
-    size_t const heap_minimum_block_size = ((size_t)(heap_struct_size << 1));
-
     inline bool heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
     {
         return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) == 0;
@@ -77,7 +70,7 @@ extern "C"
                 /* The wanted size must be increased so it can contain a BlockLink_t
                  * structure in addition to the requested amount of bytes. Some
                  * additional increment may also be needed for alignment. */
-                xAdditionalRequiredSize = heap_struct_size + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
+                xAdditionalRequiredSize = freertos::FreertosHeap4::heap_struct_size + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
 
                 if (heapADD_WILL_OVERFLOW(xWantedSize, xAdditionalRequiredSize) == 0)
                 {
@@ -118,7 +111,7 @@ extern "C"
                     {
                         /* Return the memory space pointed to - jumping over the
                          * BlockLink_t structure at its start. */
-                        pvReturn = (void *)(((uint8_t *)pxPreviousBlock->pxNextFreeBlock) + heap_struct_size);
+                        pvReturn = (void *)(((uint8_t *)pxPreviousBlock->pxNextFreeBlock) + freertos::FreertosHeap4::heap_struct_size);
 
                         /* This block is being returned for use so must be taken out
                          * of the list of free blocks. */
@@ -126,7 +119,7 @@ extern "C"
 
                         /* If the block is larger than required it can be split into
                          * two. */
-                        if ((pxBlock->xBlockSize - xWantedSize) > heap_minimum_block_size)
+                        if ((pxBlock->xBlockSize - xWantedSize) > freertos::FreertosHeap4::heap_minimum_block_size)
                         {
                             /* This block is to be split into two.  Create a new
                              * block following the number of bytes requested. The void
@@ -213,7 +206,7 @@ extern "C"
         {
             /* The memory being freed will have an BlockLink_t structure immediately
              * before it. */
-            puc -= heap_struct_size;
+            puc -= freertos::FreertosHeap4::heap_struct_size;
 
             /* This casting is to keep the compiler from issuing warnings. */
             pxLink = (freertos::BlockLink_t *)puc;
