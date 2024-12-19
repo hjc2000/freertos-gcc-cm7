@@ -33,6 +33,10 @@ namespace freertos
     class FreertosHeap4
     {
     private:
+        /* Create a couple of list links to mark the start and end of the list. */
+        freertos::BlockLink_t xStart;
+        freertos::BlockLink_t *pxEnd = nullptr;
+
 #pragma region 静态常量
         /* Assumes 8bit bytes! */
         static size_t const heapBITS_PER_BYTE = ((size_t)8);
@@ -68,6 +72,14 @@ namespace freertos
 
         static void heapFREE_BLOCK(freertos::BlockLink_t *p);
 
+        /*
+         * Inserts a block of memory that is being freed into the correct position in
+         * the list of free memory blocks.  The block being freed will be merged with
+         * the block in front it and/or the block behind it if the memory blocks are
+         * adjacent to each other.
+         */
+        void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
+
     public:
         FreertosHeap4(uint8_t *buffer, size_t size);
 
@@ -77,18 +89,6 @@ namespace freertos
         size_t xMinimumEverFreeBytesRemaining = 0U;
         size_t xNumberOfSuccessfulAllocations = 0;
         size_t xNumberOfSuccessfulFrees = 0;
-
-        /* Create a couple of list links to mark the start and end of the list. */
-        freertos::BlockLink_t xStart;
-        freertos::BlockLink_t *pxEnd = nullptr;
-
-        /*
-         * Inserts a block of memory that is being freed into the correct position in
-         * the list of free memory blocks.  The block being freed will be merged with
-         * the block in front it and/or the block behind it if the memory blocks are
-         * adjacent to each other.
-         */
-        void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
 
         void *Malloc(size_t xWantedSize);
         void Free(void *pv);
