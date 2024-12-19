@@ -1,95 +1,16 @@
-/*
- * FreeRTOS Kernel V10.5.1
- * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
- *
- * SPDX-License-Identifier: MIT
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * https://www.FreeRTOS.org
- * https://github.com/FreeRTOS
- *
- */
-
-/*
- * A sample implementation of pvPortMalloc() and vPortFree() that combines
- * (coalescences) adjacent memory blocks as they are freed, and in so doing
- * limits memory fragmentation.
- *
- * See heap_1.c, heap_2.c and heap_3.c for alternative implementations, and the
- * memory management pages of https://www.FreeRTOS.org for more information.
- */
-
 #include "heap_4.h"
-#include <stdlib.h>
-#include <string.h>
-
-/* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
- * all the API functions to use the MPU wrappers.  That should only be done when
- * task.h is included from an application file. */
-#define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
-#include "FreeRTOS.h"
-#include "task.h"
-#undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
-
-#if (configSUPPORT_DYNAMIC_ALLOCATION == 0)
-#error This file must not be used if configSUPPORT_DYNAMIC_ALLOCATION is 0
-#endif
-
-// 定义是否在释放内存的时候将释放的内存区域全部置为 0.
-#ifndef configHEAP_CLEAR_MEMORY_ON_FREE
-#define configHEAP_CLEAR_MEMORY_ON_FREE 0
-#endif
 
 namespace
 {
     freertos::FreertosHeap4 _heap4;
 
-    /* Define the linked list structure.  This is used to link free blocks in order
-     * of their memory address. */
-    struct BlockLink_t
-    {
-        BlockLink_t *pxNextFreeBlock; /*<< The next free block in the list. */
-        size_t xBlockSize;            /*<< The size of the free block. */
-
-        inline bool heapBLOCK_IS_ALLOCATED()
-        {
-            return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) != 0;
-        }
-
-        inline void heapALLOCATE_BLOCK()
-        {
-            xBlockSize |= freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
-        }
-
-        inline void heapFREE_BLOCK()
-        {
-            xBlockSize &= ~freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
-        }
-    };
-
     /* Create a couple of list links to mark the start and end of the list. */
-    PRIVILEGED_DATA static BlockLink_t xStart;
-    PRIVILEGED_DATA static BlockLink_t *pxEnd = NULL;
+    PRIVILEGED_DATA static freertos::BlockLink_t xStart;
+    PRIVILEGED_DATA static freertos::BlockLink_t *pxEnd = NULL;
 
     /* The size of the structure placed at the beginning of each allocated memory
      * block must by correctly byte aligned. */
-    size_t const heap_struct_size = (sizeof(BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
+    size_t const heap_struct_size = (sizeof(freertos::BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
 
     /* Block sizes must not get too small. */
     size_t const heap_minimum_block_size = ((size_t)(heap_struct_size << 1));
@@ -131,7 +52,7 @@ extern "C"
      * the block in front it and/or the block behind it if the memory blocks are
      * adjacent to each other.
      */
-    static void prvInsertBlockIntoFreeList(BlockLink_t *pxBlockToInsert) PRIVILEGED_FUNCTION;
+    static void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert) PRIVILEGED_FUNCTION;
 
     /*
      * Called automatically to setup the required heap structures the first time
@@ -141,9 +62,9 @@ extern "C"
 
     void *pvPortMalloc(size_t xWantedSize)
     {
-        BlockLink_t *pxBlock;
-        BlockLink_t *pxPreviousBlock;
-        BlockLink_t *pxNewBlockLink;
+        freertos::BlockLink_t *pxBlock;
+        freertos::BlockLink_t *pxPreviousBlock;
+        freertos::BlockLink_t *pxNewBlockLink;
         void *pvReturn = NULL;
         size_t xAdditionalRequiredSize;
 
@@ -221,7 +142,7 @@ extern "C"
                              * block following the number of bytes requested. The void
                              * cast is used to prevent byte alignment warnings from the
                              * compiler. */
-                            pxNewBlockLink = (BlockLink_t *)(((uint8_t *)pxBlock) + xWantedSize);
+                            pxNewBlockLink = (freertos::BlockLink_t *)(((uint8_t *)pxBlock) + xWantedSize);
                             configASSERT((((size_t)pxNewBlockLink) & portBYTE_ALIGNMENT_MASK) == 0);
 
                             /* Calculate the sizes of two blocks split from the
@@ -296,7 +217,7 @@ extern "C"
     void vPortFree(void *pv)
     {
         uint8_t *puc = (uint8_t *)pv;
-        BlockLink_t *pxLink;
+        freertos::BlockLink_t *pxLink;
 
         if (pv != NULL)
         {
@@ -305,7 +226,7 @@ extern "C"
             puc -= heap_struct_size;
 
             /* This casting is to keep the compiler from issuing warnings. */
-            pxLink = (BlockLink_t *)puc;
+            pxLink = (freertos::BlockLink_t *)puc;
 
             configASSERT(pxLink->heapBLOCK_IS_ALLOCATED() != 0);
             configASSERT(pxLink->pxNextFreeBlock == NULL);
@@ -329,7 +250,7 @@ extern "C"
                         /* Add this block to the list of free blocks. */
                         _heap4.xFreeBytesRemaining += pxLink->xBlockSize;
                         traceFREE(pv, pxLink->xBlockSize);
-                        prvInsertBlockIntoFreeList(((BlockLink_t *)pxLink));
+                        prvInsertBlockIntoFreeList(((freertos::BlockLink_t *)pxLink));
                         _heap4.xNumberOfSuccessfulFrees++;
                     }
                     (void)xTaskResumeAll();
@@ -390,7 +311,7 @@ extern "C"
 
     static void prvHeapInit(void) /* PRIVILEGED_FUNCTION */
     {
-        BlockLink_t *pxFirstFreeBlock;
+        freertos::BlockLink_t *pxFirstFreeBlock;
         uint8_t *pucAlignedHeap;
         portPOINTER_SIZE_TYPE uxAddress;
         size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
@@ -409,7 +330,7 @@ extern "C"
 
         /* xStart is used to hold a pointer to the first item in the list of free
          * blocks.  The void cast is used to prevent compiler warnings. */
-        xStart.pxNextFreeBlock = (BlockLink_t *)pucAlignedHeap;
+        xStart.pxNextFreeBlock = (freertos::BlockLink_t *)pucAlignedHeap;
         xStart.xBlockSize = (size_t)0;
 
         /* pxEnd is used to mark the end of the list of free blocks and is inserted
@@ -417,13 +338,13 @@ extern "C"
         uxAddress = ((portPOINTER_SIZE_TYPE)pucAlignedHeap) + xTotalHeapSize;
         uxAddress -= heap_struct_size;
         uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
-        pxEnd = (BlockLink_t *)uxAddress;
+        pxEnd = (freertos::BlockLink_t *)uxAddress;
         pxEnd->xBlockSize = 0;
         pxEnd->pxNextFreeBlock = NULL;
 
         /* To start with there is a single free block that is sized to take up the
          * entire heap space, minus the space taken by pxEnd. */
-        pxFirstFreeBlock = (BlockLink_t *)pucAlignedHeap;
+        pxFirstFreeBlock = (freertos::BlockLink_t *)pucAlignedHeap;
         pxFirstFreeBlock->xBlockSize = (size_t)(uxAddress - (portPOINTER_SIZE_TYPE)pxFirstFreeBlock);
         pxFirstFreeBlock->pxNextFreeBlock = pxEnd;
 
@@ -434,9 +355,9 @@ extern "C"
 
     /*-----------------------------------------------------------*/
 
-    static void prvInsertBlockIntoFreeList(BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
+    static void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
     {
-        BlockLink_t *pxIterator;
+        freertos::BlockLink_t *pxIterator;
         uint8_t *puc;
 
         /* Iterate through the list until a block is found that has a higher address
@@ -500,7 +421,7 @@ extern "C"
 
     void vPortGetHeapStats(HeapStats_t *pxHeapStats)
     {
-        BlockLink_t *pxBlock;
+        freertos::BlockLink_t *pxBlock;
         size_t xBlocks = 0, xMaxSize = 0, xMinSize = portMAX_DELAY; /* portMAX_DELAY used as a portable way of getting the maximum value. */
 
         vTaskSuspendAll();
@@ -550,4 +471,17 @@ extern "C"
     }
 }
 
-/*-----------------------------------------------------------*/
+bool freertos::BlockLink_t::heapBLOCK_IS_ALLOCATED()
+{
+    return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) != 0;
+}
+
+void freertos::BlockLink_t::heapALLOCATE_BLOCK()
+{
+    xBlockSize |= freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
+}
+
+void freertos::BlockLink_t::heapFREE_BLOCK()
+{
+    xBlockSize &= ~freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
+}

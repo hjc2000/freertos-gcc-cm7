@@ -1,8 +1,41 @@
 #pragma once
 #include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
+ * all the API functions to use the MPU wrappers.  That should only be done when
+ * task.h is included from an application file. */
+#define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
+#include "FreeRTOS.h"
+#include "task.h"
+#undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
+
+#if (configSUPPORT_DYNAMIC_ALLOCATION == 0)
+#error This file must not be used if configSUPPORT_DYNAMIC_ALLOCATION is 0
+#endif
+
+// 定义是否在释放内存的时候将释放的内存区域全部置为 0.
+#ifndef configHEAP_CLEAR_MEMORY_ON_FREE
+#define configHEAP_CLEAR_MEMORY_ON_FREE 0
+#endif
 
 namespace freertos
 {
+    /* Define the linked list structure.  This is used to link free blocks in order
+     * of their memory address. */
+    struct BlockLink_t
+    {
+        BlockLink_t *pxNextFreeBlock; /*<< The next free block in the list. */
+        size_t xBlockSize;            /*<< The size of the free block. */
+
+        bool heapBLOCK_IS_ALLOCATED();
+
+        void heapALLOCATE_BLOCK();
+
+        void heapFREE_BLOCK();
+    };
+
     class FreertosHeap4
     {
     public:
