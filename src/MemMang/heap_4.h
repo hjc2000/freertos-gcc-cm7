@@ -39,7 +39,7 @@ namespace freertos
     class FreertosHeap4
     {
     public:
-        FreertosHeap4();
+        FreertosHeap4(uint8_t *buffer, size_t size);
 
         /* Assumes 8bit bytes! */
         static size_t const heapBITS_PER_BYTE = ((size_t)8);

@@ -1,9 +1,81 @@
 #include "heap_4.h"
 
+bool freertos::BlockLink_t::heapBLOCK_IS_ALLOCATED()
+{
+    return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) != 0;
+}
+
+void freertos::BlockLink_t::heapALLOCATE_BLOCK()
+{
+    xBlockSize |= freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
+}
+
+void freertos::BlockLink_t::heapFREE_BLOCK()
+{
+    xBlockSize &= ~freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
+}
+
+freertos::FreertosHeap4::FreertosHeap4(uint8_t *buffer, size_t size)
+{
+    freertos::BlockLink_t *pxFirstFreeBlock;
+    uint8_t *pucAlignedHeap;
+    portPOINTER_SIZE_TYPE uxAddress;
+    size_t xTotalHeapSize = size;
+
+    /* Ensure the heap starts on a correctly aligned boundary. */
+    uxAddress = (portPOINTER_SIZE_TYPE)buffer;
+
+    if ((uxAddress & portBYTE_ALIGNMENT_MASK) != 0)
+    {
+        uxAddress += (portBYTE_ALIGNMENT - 1);
+        uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
+        xTotalHeapSize -= uxAddress - (portPOINTER_SIZE_TYPE)buffer;
+    }
+
+    pucAlignedHeap = (uint8_t *)uxAddress;
+
+    /* xStart is used to hold a pointer to the first item in the list of free
+     * blocks.  The void cast is used to prevent compiler warnings. */
+    xStart.pxNextFreeBlock = (freertos::BlockLink_t *)pucAlignedHeap;
+    xStart.xBlockSize = (size_t)0;
+
+    /* pxEnd is used to mark the end of the list of free blocks and is inserted
+     * at the end of the heap space. */
+    uxAddress = ((portPOINTER_SIZE_TYPE)pucAlignedHeap) + xTotalHeapSize;
+    uxAddress -= heap_struct_size;
+    uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
+    pxEnd = (freertos::BlockLink_t *)uxAddress;
+    pxEnd->xBlockSize = 0;
+    pxEnd->pxNextFreeBlock = NULL;
+
+    /* To start with there is a single free block that is sized to take up the
+     * entire heap space, minus the space taken by pxEnd. */
+    pxFirstFreeBlock = (freertos::BlockLink_t *)pucAlignedHeap;
+    pxFirstFreeBlock->xBlockSize = (size_t)(uxAddress - (portPOINTER_SIZE_TYPE)pxFirstFreeBlock);
+    pxFirstFreeBlock->pxNextFreeBlock = pxEnd;
+
+    /* Only one block exists - and it covers the entire usable heap space. */
+    xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
+    xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
+}
+
+bool freertos::FreertosHeap4::heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
+{
+    return (a > 0) && (b > (heapSIZE_MAX / a));
+}
+
+bool freertos::FreertosHeap4::heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
+{
+    return (xBlockSize & heapBLOCK_ALLOCATED_BITMASK) == 0;
+}
+
+bool freertos::FreertosHeap4::heapADD_WILL_OVERFLOW(size_t a, size_t b)
+{
+    return a > (heapSIZE_MAX - b);
+}
+
 namespace
 {
-    freertos::FreertosHeap4 _heap4;
-
 /* Allocate the memory for the heap. */
 #if (configAPPLICATION_ALLOCATED_HEAP == 1)
 
@@ -13,6 +85,8 @@ namespace
 #else
     PRIVILEGED_DATA static uint8_t ucHeap[configTOTAL_HEAP_SIZE];
 #endif /* configAPPLICATION_ALLOCATED_HEAP */
+
+    freertos::FreertosHeap4 _heap4{ucHeap, sizeof(ucHeap)};
 
 } // namespace
 
@@ -387,78 +461,4 @@ extern "C"
         }
         taskEXIT_CRITICAL();
     }
-}
-
-bool freertos::BlockLink_t::heapBLOCK_IS_ALLOCATED()
-{
-    return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) != 0;
-}
-
-void freertos::BlockLink_t::heapALLOCATE_BLOCK()
-{
-    xBlockSize |= freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
-}
-
-void freertos::BlockLink_t::heapFREE_BLOCK()
-{
-    xBlockSize &= ~freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
-}
-
-freertos::FreertosHeap4::FreertosHeap4()
-{
-    freertos::BlockLink_t *pxFirstFreeBlock;
-    uint8_t *pucAlignedHeap;
-    portPOINTER_SIZE_TYPE uxAddress;
-    size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
-
-    /* Ensure the heap starts on a correctly aligned boundary. */
-    uxAddress = (portPOINTER_SIZE_TYPE)ucHeap;
-
-    if ((uxAddress & portBYTE_ALIGNMENT_MASK) != 0)
-    {
-        uxAddress += (portBYTE_ALIGNMENT - 1);
-        uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
-        xTotalHeapSize -= uxAddress - (portPOINTER_SIZE_TYPE)ucHeap;
-    }
-
-    pucAlignedHeap = (uint8_t *)uxAddress;
-
-    /* xStart is used to hold a pointer to the first item in the list of free
-     * blocks.  The void cast is used to prevent compiler warnings. */
-    xStart.pxNextFreeBlock = (freertos::BlockLink_t *)pucAlignedHeap;
-    xStart.xBlockSize = (size_t)0;
-
-    /* pxEnd is used to mark the end of the list of free blocks and is inserted
-     * at the end of the heap space. */
-    uxAddress = ((portPOINTER_SIZE_TYPE)pucAlignedHeap) + xTotalHeapSize;
-    uxAddress -= heap_struct_size;
-    uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
-    pxEnd = (freertos::BlockLink_t *)uxAddress;
-    pxEnd->xBlockSize = 0;
-    pxEnd->pxNextFreeBlock = NULL;
-
-    /* To start with there is a single free block that is sized to take up the
-     * entire heap space, minus the space taken by pxEnd. */
-    pxFirstFreeBlock = (freertos::BlockLink_t *)pucAlignedHeap;
-    pxFirstFreeBlock->xBlockSize = (size_t)(uxAddress - (portPOINTER_SIZE_TYPE)pxFirstFreeBlock);
-    pxFirstFreeBlock->pxNextFreeBlock = pxEnd;
-
-    /* Only one block exists - and it covers the entire usable heap space. */
-    _heap4.xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
-    _heap4.xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
-}
-
-bool freertos::FreertosHeap4::heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
-{
-    return (a > 0) && (b > (heapSIZE_MAX / a));
-}
-
-bool freertos::FreertosHeap4::heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
-{
-    return (xBlockSize & heapBLOCK_ALLOCATED_BITMASK) == 0;
-}
-
-bool freertos::FreertosHeap4::heapADD_WILL_OVERFLOW(size_t a, size_t b)
-{
-    return a > (heapSIZE_MAX - b);
 }
