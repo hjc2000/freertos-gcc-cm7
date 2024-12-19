@@ -71,14 +71,16 @@ namespace
          * an BlockLink_t structure is set then the block belongs to the application.
          * When the bit is free the block is still part of the free heap space. */
         inline static size_t const heapBLOCK_ALLOCATED_BITMASK = (((size_t)1) << ((sizeof(size_t) * heapBITS_PER_BYTE) - 1));
+
+        /* Keeps track of the number of calls to allocate and free memory as well as the
+         * number of free bytes remaining, but says nothing about fragmentation. */
+        size_t xFreeBytesRemaining = 0U;
+        size_t xMinimumEverFreeBytesRemaining = 0U;
+        size_t xNumberOfSuccessfulAllocations = 0;
+        size_t xNumberOfSuccessfulFrees = 0;
     };
 
-    /* Keeps track of the number of calls to allocate and free memory as well as the
-     * number of free bytes remaining, but says nothing about fragmentation. */
-    PRIVILEGED_DATA static size_t xFreeBytesRemaining = 0U;
-    PRIVILEGED_DATA static size_t xMinimumEverFreeBytesRemaining = 0U;
-    PRIVILEGED_DATA static size_t xNumberOfSuccessfulAllocations = 0;
-    PRIVILEGED_DATA static size_t xNumberOfSuccessfulFrees = 0;
+    FreertosHeap4 _heap4;
 
     /* Define the linked list structure.  This is used to link free blocks in order
      * of their memory address. */
@@ -208,7 +210,7 @@ extern "C"
              * the kernel, so it must be free. */
             if (heapBLOCK_SIZE_IS_VALID(xWantedSize) != 0)
             {
-                if ((xWantedSize > 0) && (xWantedSize <= xFreeBytesRemaining))
+                if ((xWantedSize > 0) && (xWantedSize <= _heap4.xFreeBytesRemaining))
                 {
                     /* Traverse the list from the start (lowest address) block until
                      * one of adequate size is found. */
@@ -257,11 +259,11 @@ extern "C"
                             mtCOVERAGE_TEST_MARKER();
                         }
 
-                        xFreeBytesRemaining -= pxBlock->xBlockSize;
+                        _heap4.xFreeBytesRemaining -= pxBlock->xBlockSize;
 
-                        if (xFreeBytesRemaining < xMinimumEverFreeBytesRemaining)
+                        if (_heap4.xFreeBytesRemaining < _heap4.xMinimumEverFreeBytesRemaining)
                         {
-                            xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;
+                            _heap4.xMinimumEverFreeBytesRemaining = _heap4.xFreeBytesRemaining;
                         }
                         else
                         {
@@ -272,7 +274,7 @@ extern "C"
                          * by the application and has no "next" block. */
                         pxBlock->heapALLOCATE_BLOCK();
                         pxBlock->pxNextFreeBlock = NULL;
-                        xNumberOfSuccessfulAllocations++;
+                        _heap4.xNumberOfSuccessfulAllocations++;
                     }
                     else
                     {
@@ -347,10 +349,10 @@ extern "C"
                     vTaskSuspendAll();
                     {
                         /* Add this block to the list of free blocks. */
-                        xFreeBytesRemaining += pxLink->xBlockSize;
+                        _heap4.xFreeBytesRemaining += pxLink->xBlockSize;
                         traceFREE(pv, pxLink->xBlockSize);
                         prvInsertBlockIntoFreeList(((BlockLink_t *)pxLink));
-                        xNumberOfSuccessfulFrees++;
+                        _heap4.xNumberOfSuccessfulFrees++;
                     }
                     (void)xTaskResumeAll();
                 }
@@ -370,14 +372,14 @@ extern "C"
 
     size_t xPortGetFreeHeapSize(void)
     {
-        return xFreeBytesRemaining;
+        return _heap4.xFreeBytesRemaining;
     }
 
     /*-----------------------------------------------------------*/
 
     size_t xPortGetMinimumEverFreeHeapSize(void)
     {
-        return xMinimumEverFreeBytesRemaining;
+        return _heap4.xMinimumEverFreeBytesRemaining;
     }
 
     /*-----------------------------------------------------------*/
@@ -448,8 +450,8 @@ extern "C"
         pxFirstFreeBlock->pxNextFreeBlock = pxEnd;
 
         /* Only one block exists - and it covers the entire usable heap space. */
-        xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
-        xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
+        _heap4.xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
+        _heap4.xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
     }
 
     /*-----------------------------------------------------------*/
@@ -561,10 +563,10 @@ extern "C"
 
         taskENTER_CRITICAL();
         {
-            pxHeapStats->xAvailableHeapSpaceInBytes = xFreeBytesRemaining;
-            pxHeapStats->xNumberOfSuccessfulAllocations = xNumberOfSuccessfulAllocations;
-            pxHeapStats->xNumberOfSuccessfulFrees = xNumberOfSuccessfulFrees;
-            pxHeapStats->xMinimumEverFreeBytesRemaining = xMinimumEverFreeBytesRemaining;
+            pxHeapStats->xAvailableHeapSpaceInBytes = _heap4.xFreeBytesRemaining;
+            pxHeapStats->xNumberOfSuccessfulAllocations = _heap4.xNumberOfSuccessfulAllocations;
+            pxHeapStats->xNumberOfSuccessfulFrees = _heap4.xNumberOfSuccessfulFrees;
+            pxHeapStats->xMinimumEverFreeBytesRemaining = _heap4.xMinimumEverFreeBytesRemaining;
         }
         taskEXIT_CRITICAL();
     }
