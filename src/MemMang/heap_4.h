@@ -73,5 +73,10 @@ namespace freertos
 
         /* Check if multiplying a and b will result in overflow. */
         static bool heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b);
+
+        static bool heapBLOCK_SIZE_IS_VALID(size_t xBlockSize);
+
+        /* Check if adding a and b will result in overflow. */
+        static bool heapADD_WILL_OVERFLOW(size_t a, size_t b);
     };
 } // namespace freertos

@@ -4,17 +4,6 @@ namespace
 {
     freertos::FreertosHeap4 _heap4;
 
-    inline bool heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
-    {
-        return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) == 0;
-    }
-
-    /* Check if adding a and b will result in overflow. */
-    inline bool heapADD_WILL_OVERFLOW(size_t a, size_t b)
-    {
-        return a > (freertos::FreertosHeap4::heapSIZE_MAX - b);
-    }
-
 /* Allocate the memory for the heap. */
 #if (configAPPLICATION_ALLOCATED_HEAP == 1)
 
@@ -66,7 +55,7 @@ extern "C"
                  * additional increment may also be needed for alignment. */
                 xAdditionalRequiredSize = freertos::FreertosHeap4::heap_struct_size + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
 
-                if (heapADD_WILL_OVERFLOW(xWantedSize, xAdditionalRequiredSize) == 0)
+                if (freertos::FreertosHeap4::heapADD_WILL_OVERFLOW(xWantedSize, xAdditionalRequiredSize) == 0)
                 {
                     xWantedSize += xAdditionalRequiredSize;
                 }
@@ -84,7 +73,7 @@ extern "C"
              * top bit is set.  The top bit of the block size member of the BlockLink_t
              * structure is used to determine who owns the block - the application or
              * the kernel, so it must be free. */
-            if (heapBLOCK_SIZE_IS_VALID(xWantedSize) != 0)
+            if (freertos::FreertosHeap4::heapBLOCK_SIZE_IS_VALID(xWantedSize) != 0)
             {
                 if ((xWantedSize > 0) && (xWantedSize <= _heap4.xFreeBytesRemaining))
                 {
@@ -462,4 +451,14 @@ freertos::FreertosHeap4::FreertosHeap4()
 bool freertos::FreertosHeap4::heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
 {
     return (a > 0) && (b > (heapSIZE_MAX / a));
+}
+
+bool freertos::FreertosHeap4::heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
+{
+    return (xBlockSize & heapBLOCK_ALLOCATED_BITMASK) == 0;
+}
+
+bool freertos::FreertosHeap4::heapADD_WILL_OVERFLOW(size_t a, size_t b)
+{
+    return a > (heapSIZE_MAX - b);
 }
