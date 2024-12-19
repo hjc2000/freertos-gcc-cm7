@@ -57,17 +57,31 @@
 
 namespace
 {
+    /* Define the linked list structure.  This is used to link free blocks in order
+     * of their memory address. */
+    struct BlockLink_t
+    {
+        BlockLink_t *pxNextFreeBlock; /*<< The next free block in the list. */
+        size_t xBlockSize;            /*<< The size of the free block. */
+    };
 
-}
+    /* The size of the structure placed at the beginning of each allocated memory
+     * block must by correctly byte aligned. */
+    size_t const heap_struct_size = (sizeof(BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
 
-extern "C"
-{
-/* Assumes 8bit bytes! */
+    /* Block sizes must not get too small. */
+    size_t const heap_minimum_block_size = ((size_t)(heap_struct_size << 1));
+
+    /* Assumes 8bit bytes! */
 #define heapBITS_PER_BYTE ((size_t)8)
 
 /* Max value that fits in a size_t type. */
 #define heapSIZE_MAX (~((size_t)0))
 
+} // namespace
+
+extern "C"
+{
 /* Check if multiplying a and b will result in overflow. */
 #define heapMULTIPLY_WILL_OVERFLOW(a, b) (((a) > 0) && ((b) > (heapSIZE_MAX / (a))))
 
@@ -96,14 +110,6 @@ extern "C"
     PRIVILEGED_DATA static uint8_t ucHeap[configTOTAL_HEAP_SIZE];
 #endif /* configAPPLICATION_ALLOCATED_HEAP */
 
-    /* Define the linked list structure.  This is used to link free blocks in order
-     * of their memory address. */
-    typedef struct A_BLOCK_LINK
-    {
-        struct A_BLOCK_LINK *pxNextFreeBlock; /*<< The next free block in the list. */
-        size_t xBlockSize;                    /*<< The size of the free block. */
-    } BlockLink_t;
-
     /*-----------------------------------------------------------*/
 
     /*
@@ -121,13 +127,6 @@ extern "C"
     static void prvHeapInit(void) PRIVILEGED_FUNCTION;
 
     /*-----------------------------------------------------------*/
-
-    /* The size of the structure placed at the beginning of each allocated memory
-     * block must by correctly byte aligned. */
-    static size_t const xHeapStructSize = (sizeof(BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
-
-    /* Block sizes must not get too small. */
-    size_t const heapMINIMUM_BLOCK_SIZE = ((size_t)(xHeapStructSize << 1));
 
     /* Create a couple of list links to mark the start and end of the list. */
     PRIVILEGED_DATA static BlockLink_t xStart;
@@ -169,7 +168,7 @@ extern "C"
                 /* The wanted size must be increased so it can contain a BlockLink_t
                  * structure in addition to the requested amount of bytes. Some
                  * additional increment may also be needed for alignment. */
-                xAdditionalRequiredSize = xHeapStructSize + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
+                xAdditionalRequiredSize = heap_struct_size + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
 
                 if (heapADD_WILL_OVERFLOW(xWantedSize, xAdditionalRequiredSize) == 0)
                 {
@@ -210,7 +209,7 @@ extern "C"
                     {
                         /* Return the memory space pointed to - jumping over the
                          * BlockLink_t structure at its start. */
-                        pvReturn = (void *)(((uint8_t *)pxPreviousBlock->pxNextFreeBlock) + xHeapStructSize);
+                        pvReturn = (void *)(((uint8_t *)pxPreviousBlock->pxNextFreeBlock) + heap_struct_size);
 
                         /* This block is being returned for use so must be taken out
                          * of the list of free blocks. */
@@ -218,7 +217,7 @@ extern "C"
 
                         /* If the block is larger than required it can be split into
                          * two. */
-                        if ((pxBlock->xBlockSize - xWantedSize) > heapMINIMUM_BLOCK_SIZE)
+                        if ((pxBlock->xBlockSize - xWantedSize) > heap_minimum_block_size)
                         {
                             /* This block is to be split into two.  Create a new
                              * block following the number of bytes requested. The void
@@ -305,7 +304,7 @@ extern "C"
         {
             /* The memory being freed will have an BlockLink_t structure immediately
              * before it. */
-            puc -= xHeapStructSize;
+            puc -= heap_struct_size;
 
             /* This casting is to keep the compiler from issuing warnings. */
             pxLink = (BlockLink_t *)puc;
@@ -323,7 +322,7 @@ extern "C"
 
 #if (configHEAP_CLEAR_MEMORY_ON_FREE == 1)
                     {
-                        (void)memset(puc + xHeapStructSize, 0, pxLink->xBlockSize - xHeapStructSize);
+                        (void)memset(puc + heap_struct_size, 0, pxLink->xBlockSize - heap_struct_size);
                     }
 #endif
 
@@ -413,13 +412,13 @@ extern "C"
 
         /* xStart is used to hold a pointer to the first item in the list of free
          * blocks.  The void cast is used to prevent compiler warnings. */
-        xStart.pxNextFreeBlock = (A_BLOCK_LINK *)pucAlignedHeap;
+        xStart.pxNextFreeBlock = (BlockLink_t *)pucAlignedHeap;
         xStart.xBlockSize = (size_t)0;
 
         /* pxEnd is used to mark the end of the list of free blocks and is inserted
          * at the end of the heap space. */
         uxAddress = ((portPOINTER_SIZE_TYPE)pucAlignedHeap) + xTotalHeapSize;
-        uxAddress -= xHeapStructSize;
+        uxAddress -= heap_struct_size;
         uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
         pxEnd = (BlockLink_t *)uxAddress;
         pxEnd->xBlockSize = 0;
