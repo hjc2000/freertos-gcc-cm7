@@ -70,5 +70,8 @@ namespace freertos
         /* Create a couple of list links to mark the start and end of the list. */
         freertos::BlockLink_t xStart;
         freertos::BlockLink_t *pxEnd = nullptr;
+
+        /* Check if multiplying a and b will result in overflow. */
+        static bool heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b);
     };
 } // namespace freertos

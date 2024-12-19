@@ -9,12 +9,6 @@ namespace
         return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) == 0;
     }
 
-    /* Check if multiplying a and b will result in overflow. */
-    inline bool heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
-    {
-        return (a > 0) && (b > (freertos::FreertosHeap4::heapSIZE_MAX / a));
-    }
-
     /* Check if adding a and b will result in overflow. */
     inline bool heapADD_WILL_OVERFLOW(size_t a, size_t b)
     {
@@ -277,7 +271,7 @@ extern "C"
     {
         void *pv = NULL;
 
-        if (heapMULTIPLY_WILL_OVERFLOW(xNum, xSize) == 0)
+        if (freertos::FreertosHeap4::heapMULTIPLY_WILL_OVERFLOW(xNum, xSize) == 0)
         {
             pv = pvPortMalloc(xNum * xSize);
 
@@ -463,4 +457,9 @@ freertos::FreertosHeap4::FreertosHeap4()
     /* Only one block exists - and it covers the entire usable heap space. */
     _heap4.xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
     _heap4.xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
+}
+
+bool freertos::FreertosHeap4::heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
+{
+    return (a > 0) && (b > (heapSIZE_MAX / a));
 }
