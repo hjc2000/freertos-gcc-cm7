@@ -1,7 +1,5 @@
 #include "heap_4.h"
 
-void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert); /* PRIVILEGED_FUNCTION */
-
 bool freertos::BlockLink_t::heapBLOCK_IS_ALLOCATED()
 {
     return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) != 0;
@@ -74,6 +72,68 @@ bool freertos::FreertosHeap4::heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
 bool freertos::FreertosHeap4::heapADD_WILL_OVERFLOW(size_t a, size_t b)
 {
     return a > (heapSIZE_MAX - b);
+}
+
+void freertos::FreertosHeap4::prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert)
+{
+    freertos::BlockLink_t *pxIterator;
+    uint8_t *puc;
+
+    /* Iterate through the list until a block is found that has a higher address
+     * than the block being inserted. */
+    for (pxIterator = &xStart; pxIterator->pxNextFreeBlock < pxBlockToInsert; pxIterator = pxIterator->pxNextFreeBlock)
+    {
+        /* Nothing to do here, just iterate to the right position. */
+    }
+
+    /* Do the block being inserted, and the block it is being inserted after
+     * make a contiguous block of memory? */
+    puc = (uint8_t *)pxIterator;
+
+    if ((puc + pxIterator->xBlockSize) == (uint8_t *)pxBlockToInsert)
+    {
+        pxIterator->xBlockSize += pxBlockToInsert->xBlockSize;
+        pxBlockToInsert = pxIterator;
+    }
+    else
+    {
+        mtCOVERAGE_TEST_MARKER();
+    }
+
+    /* Do the block being inserted, and the block it is being inserted before
+     * make a contiguous block of memory? */
+    puc = (uint8_t *)pxBlockToInsert;
+
+    if ((puc + pxBlockToInsert->xBlockSize) == (uint8_t *)pxIterator->pxNextFreeBlock)
+    {
+        if (pxIterator->pxNextFreeBlock != pxEnd)
+        {
+            /* Form one big block from the two blocks. */
+            pxBlockToInsert->xBlockSize += pxIterator->pxNextFreeBlock->xBlockSize;
+            pxBlockToInsert->pxNextFreeBlock = pxIterator->pxNextFreeBlock->pxNextFreeBlock;
+        }
+        else
+        {
+            pxBlockToInsert->pxNextFreeBlock = pxEnd;
+        }
+    }
+    else
+    {
+        pxBlockToInsert->pxNextFreeBlock = pxIterator->pxNextFreeBlock;
+    }
+
+    /* If the block being inserted plugged a gab, so was merged with the block
+     * before and the block after, then it's pxNextFreeBlock pointer will have
+     * already been set, and should not be set here as that would make it point
+     * to itself. */
+    if (pxIterator != pxBlockToInsert)
+    {
+        pxIterator->pxNextFreeBlock = pxBlockToInsert;
+    }
+    else
+    {
+        mtCOVERAGE_TEST_MARKER();
+    }
 }
 
 void *freertos::FreertosHeap4::Malloc(size_t xWantedSize)
@@ -289,7 +349,7 @@ extern "C"
                         /* Add this block to the list of free blocks. */
                         _heap4.xFreeBytesRemaining += pxLink->xBlockSize;
                         traceFREE(pv, pxLink->xBlockSize);
-                        prvInsertBlockIntoFreeList(((freertos::BlockLink_t *)pxLink));
+                        _heap4.prvInsertBlockIntoFreeList(((freertos::BlockLink_t *)pxLink));
                         _heap4.xNumberOfSuccessfulFrees++;
                     }
                     (void)xTaskResumeAll();
@@ -397,73 +457,5 @@ extern "C"
             pxHeapStats->xMinimumEverFreeBytesRemaining = _heap4.xMinimumEverFreeBytesRemaining;
         }
         taskEXIT_CRITICAL();
-    }
-}
-
-/*
- * Inserts a block of memory that is being freed into the correct position in
- * the list of free memory blocks.  The block being freed will be merged with
- * the block in front it and/or the block behind it if the memory blocks are
- * adjacent to each other.
- */
-void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
-{
-    freertos::BlockLink_t *pxIterator;
-    uint8_t *puc;
-
-    /* Iterate through the list until a block is found that has a higher address
-     * than the block being inserted. */
-    for (pxIterator = &_heap4.xStart; pxIterator->pxNextFreeBlock < pxBlockToInsert; pxIterator = pxIterator->pxNextFreeBlock)
-    {
-        /* Nothing to do here, just iterate to the right position. */
-    }
-
-    /* Do the block being inserted, and the block it is being inserted after
-     * make a contiguous block of memory? */
-    puc = (uint8_t *)pxIterator;
-
-    if ((puc + pxIterator->xBlockSize) == (uint8_t *)pxBlockToInsert)
-    {
-        pxIterator->xBlockSize += pxBlockToInsert->xBlockSize;
-        pxBlockToInsert = pxIterator;
-    }
-    else
-    {
-        mtCOVERAGE_TEST_MARKER();
-    }
-
-    /* Do the block being inserted, and the block it is being inserted before
-     * make a contiguous block of memory? */
-    puc = (uint8_t *)pxBlockToInsert;
-
-    if ((puc + pxBlockToInsert->xBlockSize) == (uint8_t *)pxIterator->pxNextFreeBlock)
-    {
-        if (pxIterator->pxNextFreeBlock != _heap4.pxEnd)
-        {
-            /* Form one big block from the two blocks. */
-            pxBlockToInsert->xBlockSize += pxIterator->pxNextFreeBlock->xBlockSize;
-            pxBlockToInsert->pxNextFreeBlock = pxIterator->pxNextFreeBlock->pxNextFreeBlock;
-        }
-        else
-        {
-            pxBlockToInsert->pxNextFreeBlock = _heap4.pxEnd;
-        }
-    }
-    else
-    {
-        pxBlockToInsert->pxNextFreeBlock = pxIterator->pxNextFreeBlock;
-    }
-
-    /* If the block being inserted plugged a gab, so was merged with the block
-     * before and the block after, then it's pxNextFreeBlock pointer will have
-     * already been set, and should not be set here as that would make it point
-     * to itself. */
-    if (pxIterator != pxBlockToInsert)
-    {
-        pxIterator->pxNextFreeBlock = pxBlockToInsert;
-    }
-    else
-    {
-        mtCOVERAGE_TEST_MARKER();
     }
 }

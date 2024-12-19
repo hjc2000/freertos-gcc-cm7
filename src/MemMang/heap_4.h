@@ -79,6 +79,14 @@ namespace freertos
         /* Check if adding a and b will result in overflow. */
         static bool heapADD_WILL_OVERFLOW(size_t a, size_t b);
 
+        /*
+         * Inserts a block of memory that is being freed into the correct position in
+         * the list of free memory blocks.  The block being freed will be merged with
+         * the block in front it and/or the block behind it if the memory blocks are
+         * adjacent to each other.
+         */
+        void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
+
         void *Malloc(size_t xWantedSize);
     };
 } // namespace freertos
