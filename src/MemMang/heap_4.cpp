@@ -35,6 +35,7 @@
  * memory management pages of https://www.FreeRTOS.org for more information.
  */
 
+#include "heap_4.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -57,30 +58,7 @@
 
 namespace
 {
-    class FreertosHeap4
-    {
-    public:
-        /* Assumes 8bit bytes! */
-        inline static size_t const heapBITS_PER_BYTE = ((size_t)8);
-
-        /* Max value that fits in a size_t type. */
-        inline static size_t const heapSIZE_MAX = (~((size_t)0));
-
-        /* MSB of the xBlockSize member of an BlockLink_t structure is used to track
-         * the allocation status of a block.  When MSB of the xBlockSize member of
-         * an BlockLink_t structure is set then the block belongs to the application.
-         * When the bit is free the block is still part of the free heap space. */
-        inline static size_t const heapBLOCK_ALLOCATED_BITMASK = (((size_t)1) << ((sizeof(size_t) * heapBITS_PER_BYTE) - 1));
-
-        /* Keeps track of the number of calls to allocate and free memory as well as the
-         * number of free bytes remaining, but says nothing about fragmentation. */
-        size_t xFreeBytesRemaining = 0U;
-        size_t xMinimumEverFreeBytesRemaining = 0U;
-        size_t xNumberOfSuccessfulAllocations = 0;
-        size_t xNumberOfSuccessfulFrees = 0;
-    };
-
-    FreertosHeap4 _heap4;
+    freertos::FreertosHeap4 _heap4;
 
     /* Define the linked list structure.  This is used to link free blocks in order
      * of their memory address. */
@@ -91,17 +69,17 @@ namespace
 
         inline bool heapBLOCK_IS_ALLOCATED()
         {
-            return (xBlockSize & FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) != 0;
+            return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) != 0;
         }
 
         inline void heapALLOCATE_BLOCK()
         {
-            xBlockSize |= FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
+            xBlockSize |= freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
         }
 
         inline void heapFREE_BLOCK()
         {
-            xBlockSize &= ~FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
+            xBlockSize &= ~freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
         }
     };
 
@@ -118,19 +96,19 @@ namespace
 
     inline bool heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
     {
-        return (xBlockSize & FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) == 0;
+        return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) == 0;
     }
 
     /* Check if multiplying a and b will result in overflow. */
     inline bool heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
     {
-        return (a > 0) && (b > (FreertosHeap4::heapSIZE_MAX / a));
+        return (a > 0) && (b > (freertos::FreertosHeap4::heapSIZE_MAX / a));
     }
 
     /* Check if adding a and b will result in overflow. */
     inline bool heapADD_WILL_OVERFLOW(size_t a, size_t b)
     {
-        return a > (FreertosHeap4::heapSIZE_MAX - b);
+        return a > (freertos::FreertosHeap4::heapSIZE_MAX - b);
     }
 
 /* Allocate the memory for the heap. */
