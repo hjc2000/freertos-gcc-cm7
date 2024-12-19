@@ -59,5 +59,9 @@ namespace freertos
         size_t xMinimumEverFreeBytesRemaining = 0U;
         size_t xNumberOfSuccessfulAllocations = 0;
         size_t xNumberOfSuccessfulFrees = 0;
+
+        /* Create a couple of list links to mark the start and end of the list. */
+        freertos::BlockLink_t xStart;
+        freertos::BlockLink_t *pxEnd = nullptr;
     };
 } // namespace freertos

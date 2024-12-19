@@ -4,10 +4,6 @@ namespace
 {
     freertos::FreertosHeap4 _heap4;
 
-    /* Create a couple of list links to mark the start and end of the list. */
-    PRIVILEGED_DATA static freertos::BlockLink_t xStart;
-    PRIVILEGED_DATA static freertos::BlockLink_t *pxEnd = NULL;
-
     /* The size of the structure placed at the beginning of each allocated memory
      * block must by correctly byte aligned. */
     size_t const heap_struct_size = (sizeof(freertos::BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
@@ -67,7 +63,7 @@ extern "C"
         {
             /* If this is the first call to malloc then the heap will require
              * initialisation to setup the list of free blocks. */
-            if (pxEnd == NULL)
+            if (_heap4.pxEnd == NULL)
             {
                 // prvHeapInit();
             }
@@ -107,8 +103,8 @@ extern "C"
                 {
                     /* Traverse the list from the start (lowest address) block until
                      * one of adequate size is found. */
-                    pxPreviousBlock = &xStart;
-                    pxBlock = xStart.pxNextFreeBlock;
+                    pxPreviousBlock = &_heap4.xStart;
+                    pxBlock = _heap4.xStart.pxNextFreeBlock;
 
                     while ((pxBlock->xBlockSize < xWantedSize) && (pxBlock->pxNextFreeBlock != NULL))
                     {
@@ -118,7 +114,7 @@ extern "C"
 
                     /* If the end marker was reached then a block of adequate size
                      * was not found. */
-                    if (pxBlock != pxEnd)
+                    if (pxBlock != _heap4.pxEnd)
                     {
                         /* Return the memory space pointed to - jumping over the
                          * BlockLink_t structure at its start. */
@@ -308,7 +304,7 @@ extern "C"
 
         /* Iterate through the list until a block is found that has a higher address
          * than the block being inserted. */
-        for (pxIterator = &xStart; pxIterator->pxNextFreeBlock < pxBlockToInsert; pxIterator = pxIterator->pxNextFreeBlock)
+        for (pxIterator = &_heap4.xStart; pxIterator->pxNextFreeBlock < pxBlockToInsert; pxIterator = pxIterator->pxNextFreeBlock)
         {
             /* Nothing to do here, just iterate to the right position. */
         }
@@ -333,7 +329,7 @@ extern "C"
 
         if ((puc + pxBlockToInsert->xBlockSize) == (uint8_t *)pxIterator->pxNextFreeBlock)
         {
-            if (pxIterator->pxNextFreeBlock != pxEnd)
+            if (pxIterator->pxNextFreeBlock != _heap4.pxEnd)
             {
                 /* Form one big block from the two blocks. */
                 pxBlockToInsert->xBlockSize += pxIterator->pxNextFreeBlock->xBlockSize;
@@ -341,7 +337,7 @@ extern "C"
             }
             else
             {
-                pxBlockToInsert->pxNextFreeBlock = pxEnd;
+                pxBlockToInsert->pxNextFreeBlock = _heap4.pxEnd;
             }
         }
         else
@@ -372,13 +368,13 @@ extern "C"
 
         vTaskSuspendAll();
         {
-            pxBlock = xStart.pxNextFreeBlock;
+            pxBlock = _heap4.xStart.pxNextFreeBlock;
 
             /* pxBlock will be NULL if the heap has not been initialised.  The heap
              * is initialised automatically when the first allocation is made. */
             if (pxBlock != NULL)
             {
-                while (pxBlock != pxEnd)
+                while (pxBlock != _heap4.pxEnd)
                 {
                     /* Increment the number of blocks and record the largest block seen
                      * so far. */
