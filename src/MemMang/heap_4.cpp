@@ -57,21 +57,6 @@
 
 namespace
 {
-    /* Define the linked list structure.  This is used to link free blocks in order
-     * of their memory address. */
-    struct BlockLink_t
-    {
-        BlockLink_t *pxNextFreeBlock; /*<< The next free block in the list. */
-        size_t xBlockSize;            /*<< The size of the free block. */
-    };
-
-    /* The size of the structure placed at the beginning of each allocated memory
-     * block must by correctly byte aligned. */
-    size_t const heap_struct_size = (sizeof(BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
-
-    /* Block sizes must not get too small. */
-    size_t const heap_minimum_block_size = ((size_t)(heap_struct_size << 1));
-
     /* Assumes 8bit bytes! */
     size_t const heapBITS_PER_BYTE = ((size_t)8);
 
@@ -84,14 +69,29 @@ namespace
      * When the bit is free the block is still part of the free heap space. */
     size_t const heapBLOCK_ALLOCATED_BITMASK = (((size_t)1) << ((sizeof(size_t) * heapBITS_PER_BYTE) - 1));
 
+    /* Define the linked list structure.  This is used to link free blocks in order
+     * of their memory address. */
+    struct BlockLink_t
+    {
+        BlockLink_t *pxNextFreeBlock; /*<< The next free block in the list. */
+        size_t xBlockSize;            /*<< The size of the free block. */
+
+        inline bool heapBLOCK_IS_ALLOCATED()
+        {
+            return (xBlockSize & heapBLOCK_ALLOCATED_BITMASK) != 0;
+        }
+    };
+
+    /* The size of the structure placed at the beginning of each allocated memory
+     * block must by correctly byte aligned. */
+    size_t const heap_struct_size = (sizeof(BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
+
+    /* Block sizes must not get too small. */
+    size_t const heap_minimum_block_size = ((size_t)(heap_struct_size << 1));
+
     inline bool heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
     {
         return (((xBlockSize)&heapBLOCK_ALLOCATED_BITMASK) == 0);
-    }
-
-    inline bool heapBLOCK_IS_ALLOCATED(BlockLink_t *pxBlock)
-    {
-        return (((pxBlock->xBlockSize) & heapBLOCK_ALLOCATED_BITMASK) != 0);
     }
 
     inline void heapALLOCATE_BLOCK(BlockLink_t *pxBlock)
@@ -327,10 +327,10 @@ extern "C"
             /* This casting is to keep the compiler from issuing warnings. */
             pxLink = (BlockLink_t *)puc;
 
-            configASSERT(heapBLOCK_IS_ALLOCATED(pxLink) != 0);
+            configASSERT(pxLink->heapBLOCK_IS_ALLOCATED() != 0);
             configASSERT(pxLink->pxNextFreeBlock == NULL);
 
-            if (heapBLOCK_IS_ALLOCATED(pxLink) != 0)
+            if (pxLink->heapBLOCK_IS_ALLOCATED() != 0)
             {
                 if (pxLink->pxNextFreeBlock == NULL)
                 {
