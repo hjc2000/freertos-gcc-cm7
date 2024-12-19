@@ -112,19 +112,19 @@ namespace
 
     inline bool heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
     {
-        return (((xBlockSize)&heapBLOCK_ALLOCATED_BITMASK) == 0);
+        return ((xBlockSize)&heapBLOCK_ALLOCATED_BITMASK) == 0;
     }
 
     /* Check if multiplying a and b will result in overflow. */
     inline bool heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
     {
-        return (((a) > 0) && ((b) > (heapSIZE_MAX / (a))));
+        return (a > 0) && (b > (heapSIZE_MAX / a));
     }
 
     /* Check if adding a and b will result in overflow. */
     inline bool heapADD_WILL_OVERFLOW(size_t a, size_t b)
     {
-        return ((a) > (heapSIZE_MAX - (b)));
+        return a > (heapSIZE_MAX - b);
     }
 
 /* Allocate the memory for the heap. */
@@ -385,8 +385,7 @@ extern "C"
 
     /*-----------------------------------------------------------*/
 
-    void *pvPortCalloc(size_t xNum,
-                       size_t xSize)
+    void *pvPortCalloc(size_t xNum, size_t xSize)
     {
         void *pv = NULL;
 
