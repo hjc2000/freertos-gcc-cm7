@@ -35,8 +35,6 @@
  * memory management pages of https://www.FreeRTOS.org for more information.
  */
 
-extern "C"
-{
 #include <stdlib.h>
 #include <string.h>
 
@@ -44,23 +42,26 @@ extern "C"
  * all the API functions to use the MPU wrappers.  That should only be done when
  * task.h is included from an application file. */
 #define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
-
 #include "FreeRTOS.h"
 #include "task.h"
-
 #undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
 #if (configSUPPORT_DYNAMIC_ALLOCATION == 0)
 #error This file must not be used if configSUPPORT_DYNAMIC_ALLOCATION is 0
 #endif
 
+// 定义是否在释放内存的时候将释放的内存区域全部置为 0.
 #ifndef configHEAP_CLEAR_MEMORY_ON_FREE
 #define configHEAP_CLEAR_MEMORY_ON_FREE 0
 #endif
 
-/* Block sizes must not get too small. */
-#define heapMINIMUM_BLOCK_SIZE ((size_t)(xHeapStructSize << 1))
+namespace
+{
 
+}
+
+extern "C"
+{
 /* Assumes 8bit bytes! */
 #define heapBITS_PER_BYTE ((size_t)8)
 
@@ -124,6 +125,9 @@ extern "C"
     /* The size of the structure placed at the beginning of each allocated memory
      * block must by correctly byte aligned. */
     static size_t const xHeapStructSize = (sizeof(BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
+
+    /* Block sizes must not get too small. */
+    size_t const heapMINIMUM_BLOCK_SIZE = ((size_t)(xHeapStructSize << 1));
 
     /* Create a couple of list links to mark the start and end of the list. */
     PRIVILEGED_DATA static BlockLink_t xStart;
