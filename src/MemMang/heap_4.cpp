@@ -288,6 +288,110 @@ void *freertos::FreertosHeap4::Malloc(size_t xWantedSize)
     return pvReturn;
 }
 
+void freertos::FreertosHeap4::Free(void *pv)
+{
+    uint8_t *puc = (uint8_t *)pv;
+    freertos::BlockLink_t *pxLink;
+
+    if (pv != NULL)
+    {
+        /* The memory being freed will have an BlockLink_t structure immediately
+         * before it. */
+        puc -= freertos::FreertosHeap4::heap_struct_size;
+
+        /* This casting is to keep the compiler from issuing warnings. */
+        pxLink = (freertos::BlockLink_t *)puc;
+
+        configASSERT(pxLink->heapBLOCK_IS_ALLOCATED() != 0);
+        configASSERT(pxLink->pxNextFreeBlock == NULL);
+
+        if (pxLink->heapBLOCK_IS_ALLOCATED() != 0)
+        {
+            if (pxLink->pxNextFreeBlock == NULL)
+            {
+                /* The block is being returned to the heap - it is no longer
+                 * allocated. */
+                pxLink->heapFREE_BLOCK();
+
+#if (configHEAP_CLEAR_MEMORY_ON_FREE == 1)
+                {
+                    (void)memset(puc + heap_struct_size, 0, pxLink->xBlockSize - heap_struct_size);
+                }
+#endif
+
+                vTaskSuspendAll();
+                {
+                    /* Add this block to the list of free blocks. */
+                    xFreeBytesRemaining += pxLink->xBlockSize;
+                    traceFREE(pv, pxLink->xBlockSize);
+                    prvInsertBlockIntoFreeList(((freertos::BlockLink_t *)pxLink));
+                    xNumberOfSuccessfulFrees++;
+                }
+                (void)xTaskResumeAll();
+            }
+            else
+            {
+                mtCOVERAGE_TEST_MARKER();
+            }
+        }
+        else
+        {
+            mtCOVERAGE_TEST_MARKER();
+        }
+    }
+}
+
+void freertos::FreertosHeap4::GetHeapStats(HeapStats_t *pxHeapStats)
+{
+    freertos::BlockLink_t *pxBlock;
+    size_t xBlocks = 0, xMaxSize = 0, xMinSize = portMAX_DELAY; /* portMAX_DELAY used as a portable way of getting the maximum value. */
+
+    vTaskSuspendAll();
+    {
+        pxBlock = xStart.pxNextFreeBlock;
+
+        /* pxBlock will be NULL if the heap has not been initialised.  The heap
+         * is initialised automatically when the first allocation is made. */
+        if (pxBlock != NULL)
+        {
+            while (pxBlock != pxEnd)
+            {
+                /* Increment the number of blocks and record the largest block seen
+                 * so far. */
+                xBlocks++;
+
+                if (pxBlock->xBlockSize > xMaxSize)
+                {
+                    xMaxSize = pxBlock->xBlockSize;
+                }
+
+                if (pxBlock->xBlockSize < xMinSize)
+                {
+                    xMinSize = pxBlock->xBlockSize;
+                }
+
+                /* Move to the next block in the chain until the last block is
+                 * reached. */
+                pxBlock = pxBlock->pxNextFreeBlock;
+            }
+        }
+    }
+    (void)xTaskResumeAll();
+
+    pxHeapStats->xSizeOfLargestFreeBlockInBytes = xMaxSize;
+    pxHeapStats->xSizeOfSmallestFreeBlockInBytes = xMinSize;
+    pxHeapStats->xNumberOfFreeBlocks = xBlocks;
+
+    taskENTER_CRITICAL();
+    {
+        pxHeapStats->xAvailableHeapSpaceInBytes = xFreeBytesRemaining;
+        pxHeapStats->xNumberOfSuccessfulAllocations = xNumberOfSuccessfulAllocations;
+        pxHeapStats->xNumberOfSuccessfulFrees = xNumberOfSuccessfulFrees;
+        pxHeapStats->xMinimumEverFreeBytesRemaining = xMinimumEverFreeBytesRemaining;
+    }
+    taskEXIT_CRITICAL();
+}
+
 namespace
 {
 /* Allocate the memory for the heap. */
@@ -315,55 +419,7 @@ extern "C"
 
     void vPortFree(void *pv)
     {
-        uint8_t *puc = (uint8_t *)pv;
-        freertos::BlockLink_t *pxLink;
-
-        if (pv != NULL)
-        {
-            /* The memory being freed will have an BlockLink_t structure immediately
-             * before it. */
-            puc -= freertos::FreertosHeap4::heap_struct_size;
-
-            /* This casting is to keep the compiler from issuing warnings. */
-            pxLink = (freertos::BlockLink_t *)puc;
-
-            configASSERT(pxLink->heapBLOCK_IS_ALLOCATED() != 0);
-            configASSERT(pxLink->pxNextFreeBlock == NULL);
-
-            if (pxLink->heapBLOCK_IS_ALLOCATED() != 0)
-            {
-                if (pxLink->pxNextFreeBlock == NULL)
-                {
-                    /* The block is being returned to the heap - it is no longer
-                     * allocated. */
-                    pxLink->heapFREE_BLOCK();
-
-#if (configHEAP_CLEAR_MEMORY_ON_FREE == 1)
-                    {
-                        (void)memset(puc + heap_struct_size, 0, pxLink->xBlockSize - heap_struct_size);
-                    }
-#endif
-
-                    vTaskSuspendAll();
-                    {
-                        /* Add this block to the list of free blocks. */
-                        _heap4.xFreeBytesRemaining += pxLink->xBlockSize;
-                        traceFREE(pv, pxLink->xBlockSize);
-                        _heap4.prvInsertBlockIntoFreeList(((freertos::BlockLink_t *)pxLink));
-                        _heap4.xNumberOfSuccessfulFrees++;
-                    }
-                    (void)xTaskResumeAll();
-                }
-                else
-                {
-                    mtCOVERAGE_TEST_MARKER();
-                }
-            }
-            else
-            {
-                mtCOVERAGE_TEST_MARKER();
-            }
-        }
+        _heap4.Free(pv);
     }
 
     /*-----------------------------------------------------------*/
@@ -410,52 +466,6 @@ extern "C"
 
     void vPortGetHeapStats(HeapStats_t *pxHeapStats)
     {
-        freertos::BlockLink_t *pxBlock;
-        size_t xBlocks = 0, xMaxSize = 0, xMinSize = portMAX_DELAY; /* portMAX_DELAY used as a portable way of getting the maximum value. */
-
-        vTaskSuspendAll();
-        {
-            pxBlock = _heap4.xStart.pxNextFreeBlock;
-
-            /* pxBlock will be NULL if the heap has not been initialised.  The heap
-             * is initialised automatically when the first allocation is made. */
-            if (pxBlock != NULL)
-            {
-                while (pxBlock != _heap4.pxEnd)
-                {
-                    /* Increment the number of blocks and record the largest block seen
-                     * so far. */
-                    xBlocks++;
-
-                    if (pxBlock->xBlockSize > xMaxSize)
-                    {
-                        xMaxSize = pxBlock->xBlockSize;
-                    }
-
-                    if (pxBlock->xBlockSize < xMinSize)
-                    {
-                        xMinSize = pxBlock->xBlockSize;
-                    }
-
-                    /* Move to the next block in the chain until the last block is
-                     * reached. */
-                    pxBlock = pxBlock->pxNextFreeBlock;
-                }
-            }
-        }
-        (void)xTaskResumeAll();
-
-        pxHeapStats->xSizeOfLargestFreeBlockInBytes = xMaxSize;
-        pxHeapStats->xSizeOfSmallestFreeBlockInBytes = xMinSize;
-        pxHeapStats->xNumberOfFreeBlocks = xBlocks;
-
-        taskENTER_CRITICAL();
-        {
-            pxHeapStats->xAvailableHeapSpaceInBytes = _heap4.xFreeBytesRemaining;
-            pxHeapStats->xNumberOfSuccessfulAllocations = _heap4.xNumberOfSuccessfulAllocations;
-            pxHeapStats->xNumberOfSuccessfulFrees = _heap4.xNumberOfSuccessfulFrees;
-            pxHeapStats->xMinimumEverFreeBytesRemaining = _heap4.xMinimumEverFreeBytesRemaining;
-        }
-        taskEXIT_CRITICAL();
+        return _heap4.GetHeapStats(pxHeapStats);
     }
 }

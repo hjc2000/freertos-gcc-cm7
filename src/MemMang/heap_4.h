@@ -88,5 +88,7 @@ namespace freertos
         void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
 
         void *Malloc(size_t xWantedSize);
+        void Free(void *pv);
+        void GetHeapStats(HeapStats_t *pxHeapStats);
     };
 } // namespace freertos
