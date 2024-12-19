@@ -1,18 +1,33 @@
 #include "heap_4.h"
 
-bool freertos::BlockLink_t::heapBLOCK_IS_ALLOCATED()
+bool freertos::FreertosHeap4::heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
 {
-    return (xBlockSize & freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK) != 0;
+    return (a > 0) && (b > (heapSIZE_MAX / a));
 }
 
-void freertos::BlockLink_t::heapALLOCATE_BLOCK()
+bool freertos::FreertosHeap4::heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
 {
-    xBlockSize |= freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
+    return (xBlockSize & heapBLOCK_ALLOCATED_BITMASK) == 0;
 }
 
-void freertos::BlockLink_t::heapFREE_BLOCK()
+bool freertos::FreertosHeap4::heapADD_WILL_OVERFLOW(size_t a, size_t b)
 {
-    xBlockSize &= ~freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
+    return a > (heapSIZE_MAX - b);
+}
+
+bool freertos::FreertosHeap4::heapBLOCK_IS_ALLOCATED(freertos::BlockLink_t *p)
+{
+    return (p->xBlockSize & heapBLOCK_ALLOCATED_BITMASK) != 0;
+}
+
+void freertos::FreertosHeap4::heapALLOCATE_BLOCK(freertos::BlockLink_t *p)
+{
+    p->xBlockSize |= heapBLOCK_ALLOCATED_BITMASK;
+}
+
+void freertos::FreertosHeap4::heapFREE_BLOCK(freertos::BlockLink_t *p)
+{
+    p->xBlockSize &= ~freertos::FreertosHeap4::heapBLOCK_ALLOCATED_BITMASK;
 }
 
 freertos::FreertosHeap4::FreertosHeap4(uint8_t *buffer, size_t size)
@@ -57,21 +72,6 @@ freertos::FreertosHeap4::FreertosHeap4(uint8_t *buffer, size_t size)
     /* Only one block exists - and it covers the entire usable heap space. */
     xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
     xFreeBytesRemaining = pxFirstFreeBlock->xBlockSize;
-}
-
-bool freertos::FreertosHeap4::heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
-{
-    return (a > 0) && (b > (heapSIZE_MAX / a));
-}
-
-bool freertos::FreertosHeap4::heapBLOCK_SIZE_IS_VALID(size_t xBlockSize)
-{
-    return (xBlockSize & heapBLOCK_ALLOCATED_BITMASK) == 0;
-}
-
-bool freertos::FreertosHeap4::heapADD_WILL_OVERFLOW(size_t a, size_t b)
-{
-    return a > (heapSIZE_MAX - b);
 }
 
 void freertos::FreertosHeap4::prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert)
@@ -247,7 +247,7 @@ void *freertos::FreertosHeap4::Malloc(size_t xWantedSize)
 
                     /* The block is being returned - it is allocated and owned
                      * by the application and has no "next" block. */
-                    pxBlock->heapALLOCATE_BLOCK();
+                    heapALLOCATE_BLOCK(pxBlock);
                     pxBlock->pxNextFreeBlock = NULL;
                     xNumberOfSuccessfulAllocations++;
                 }
@@ -302,16 +302,16 @@ void freertos::FreertosHeap4::Free(void *pv)
         /* This casting is to keep the compiler from issuing warnings. */
         pxLink = (freertos::BlockLink_t *)puc;
 
-        configASSERT(pxLink->heapBLOCK_IS_ALLOCATED() != 0);
+        configASSERT(heapBLOCK_IS_ALLOCATED(pxLink) != 0);
         configASSERT(pxLink->pxNextFreeBlock == NULL);
 
-        if (pxLink->heapBLOCK_IS_ALLOCATED() != 0)
+        if (heapBLOCK_IS_ALLOCATED(pxLink) != 0)
         {
             if (pxLink->pxNextFreeBlock == NULL)
             {
                 /* The block is being returned to the heap - it is no longer
                  * allocated. */
-                pxLink->heapFREE_BLOCK();
+                heapFREE_BLOCK(pxLink);
 
 #if (configHEAP_CLEAR_MEMORY_ON_FREE == 1)
                 {
@@ -339,6 +339,23 @@ void freertos::FreertosHeap4::Free(void *pv)
             mtCOVERAGE_TEST_MARKER();
         }
     }
+}
+
+void *freertos::FreertosHeap4::Calloc(size_t xNum, size_t xSize)
+{
+    void *pv = NULL;
+
+    if (freertos::FreertosHeap4::heapMULTIPLY_WILL_OVERFLOW(xNum, xSize) == 0)
+    {
+        pv = pvPortMalloc(xNum * xSize);
+
+        if (pv != NULL)
+        {
+            (void)memset(pv, 0, xNum * xSize);
+        }
+    }
+
+    return pv;
 }
 
 void freertos::FreertosHeap4::GetHeapStats(HeapStats_t *pxHeapStats)
@@ -415,51 +432,29 @@ extern "C"
         return _heap4.Malloc(xWantedSize);
     }
 
-    /*-----------------------------------------------------------*/
-
     void vPortFree(void *pv)
     {
         _heap4.Free(pv);
     }
-
-    /*-----------------------------------------------------------*/
 
     size_t xPortGetFreeHeapSize(void)
     {
         return _heap4.xFreeBytesRemaining;
     }
 
-    /*-----------------------------------------------------------*/
-
     size_t xPortGetMinimumEverFreeHeapSize(void)
     {
         return _heap4.xMinimumEverFreeBytesRemaining;
     }
-
-    /*-----------------------------------------------------------*/
 
     void vPortInitialiseBlocks(void)
     {
         /* This just exists to keep the linker quiet. */
     }
 
-    /*-----------------------------------------------------------*/
-
     void *pvPortCalloc(size_t xNum, size_t xSize)
     {
-        void *pv = NULL;
-
-        if (freertos::FreertosHeap4::heapMULTIPLY_WILL_OVERFLOW(xNum, xSize) == 0)
-        {
-            pv = pvPortMalloc(xNum * xSize);
-
-            if (pv != NULL)
-            {
-                (void)memset(pv, 0, xNum * xSize);
-            }
-        }
-
-        return pv;
+        return _heap4.Calloc(xNum, xSize);
     }
 
     /*-----------------------------------------------------------*/

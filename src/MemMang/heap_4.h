@@ -28,19 +28,12 @@ namespace freertos
     {
         BlockLink_t *pxNextFreeBlock; /*<< The next free block in the list. */
         size_t xBlockSize;            /*<< The size of the free block. */
-
-        bool heapBLOCK_IS_ALLOCATED();
-
-        void heapALLOCATE_BLOCK();
-
-        void heapFREE_BLOCK();
     };
 
     class FreertosHeap4
     {
-    public:
-        FreertosHeap4(uint8_t *buffer, size_t size);
-
+    private:
+#pragma region 静态常量
         /* Assumes 8bit bytes! */
         static size_t const heapBITS_PER_BYTE = ((size_t)8);
 
@@ -59,6 +52,24 @@ namespace freertos
 
         /* Block sizes must not get too small. */
         static size_t const heap_minimum_block_size = ((size_t)(heap_struct_size << 1));
+#pragma endregion
+
+        /* Check if multiplying a and b will result in overflow. */
+        static bool heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b);
+
+        static bool heapBLOCK_SIZE_IS_VALID(size_t xBlockSize);
+
+        /* Check if adding a and b will result in overflow. */
+        static bool heapADD_WILL_OVERFLOW(size_t a, size_t b);
+
+        static bool heapBLOCK_IS_ALLOCATED(freertos::BlockLink_t *p);
+
+        static void heapALLOCATE_BLOCK(freertos::BlockLink_t *p);
+
+        static void heapFREE_BLOCK(freertos::BlockLink_t *p);
+
+    public:
+        FreertosHeap4(uint8_t *buffer, size_t size);
 
         /* Keeps track of the number of calls to allocate and free memory as well as the
          * number of free bytes remaining, but says nothing about fragmentation. */
@@ -71,14 +82,6 @@ namespace freertos
         freertos::BlockLink_t xStart;
         freertos::BlockLink_t *pxEnd = nullptr;
 
-        /* Check if multiplying a and b will result in overflow. */
-        static bool heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b);
-
-        static bool heapBLOCK_SIZE_IS_VALID(size_t xBlockSize);
-
-        /* Check if adding a and b will result in overflow. */
-        static bool heapADD_WILL_OVERFLOW(size_t a, size_t b);
-
         /*
          * Inserts a block of memory that is being freed into the correct position in
          * the list of free memory blocks.  The block being freed will be merged with
@@ -89,6 +92,7 @@ namespace freertos
 
         void *Malloc(size_t xWantedSize);
         void Free(void *pv);
+        void *Calloc(size_t xNum, size_t xSize);
         void GetHeapStats(HeapStats_t *pxHeapStats);
     };
 } // namespace freertos
