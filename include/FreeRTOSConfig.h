@@ -81,7 +81,7 @@ extern "C"
 #define configMAX_PRIORITIES 56
 
 /* 定义空闲任务的栈空间大小, 单位: Word, 无默认需定义 */
-#define configMINIMAL_STACK_SIZE 128
+#define configMINIMAL_STACK_SIZE 512
 
 /* 定义任务名最大字符数, 默认: 16 */
 #define configMAX_TASK_NAME_LEN 16
