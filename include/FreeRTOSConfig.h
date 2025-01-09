@@ -281,7 +281,7 @@ extern "C"
 #pragma endregion
 
 /* 断言 */
-#define vAssertCalled(char, int) printf("发生了错误: %s, %d\r\n", char, int)
+#define vAssertCalled(char, int) printf("freertos 内部发生了错误: %s, %d\r\n", char, int)
 
 #define configASSERT(x)                    \
     if ((x) == 0)                          \
