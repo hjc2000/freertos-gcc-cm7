@@ -282,9 +282,12 @@ extern "C"
 
 /* 断言 */
 #define vAssertCalled(char, int) printf("发生了错误: %s, %d\r\n", char, int)
-#define configASSERT(x) \
-    if ((x) == 0)       \
-    vAssertCalled(__FILE__, __LINE__)
+
+#define configASSERT(x)                    \
+    if ((x) == 0)                          \
+    {                                      \
+        vAssertCalled(__FILE__, __LINE__); \
+    }
 
 #ifdef __cplusplus
 }
