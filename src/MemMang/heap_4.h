@@ -31,6 +31,7 @@ namespace freertos
 
         void *Malloc(size_t xWantedSize);
         void Free(void *pv);
+        void *Calloc(size_t xNum, size_t xSize);
     };
 
 } // namespace freertos

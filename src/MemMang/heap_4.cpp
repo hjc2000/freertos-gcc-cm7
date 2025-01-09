@@ -138,19 +138,7 @@ extern "C"
 
     void *pvPortCalloc(size_t xNum, size_t xSize)
     {
-        void *pv = NULL;
-
-        if (!heapMULTIPLY_WILL_OVERFLOW(xNum, xSize))
-        {
-            pv = pvPortMalloc(xNum * xSize);
-
-            if (pv != NULL)
-            {
-                (void)memset(pv, 0, xNum * xSize);
-            }
-        }
-
-        return pv;
+        return _heap4.Calloc(xNum, xSize);
     }
 
     void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
@@ -514,4 +502,21 @@ void freertos::Heap4::Free(void *pv)
             mtCOVERAGE_TEST_MARKER();
         }
     }
+}
+
+void *freertos::Heap4::Calloc(size_t xNum, size_t xSize)
+{
+    void *pv = NULL;
+
+    if (!heapMULTIPLY_WILL_OVERFLOW(xNum, xSize))
+    {
+        pv = pvPortMalloc(xNum * xSize);
+
+        if (pv != NULL)
+        {
+            (void)memset(pv, 0, xNum * xSize);
+        }
+    }
+
+    return pv;
 }
