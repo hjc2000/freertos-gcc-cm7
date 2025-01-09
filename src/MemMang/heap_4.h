@@ -28,6 +28,8 @@ namespace freertos
         size_t xMinimumEverFreeBytesRemaining = 0U;
         size_t xNumberOfSuccessfulAllocations = 0;
         size_t xNumberOfSuccessfulFrees = 0;
+
+        void *Malloc(size_t xWantedSize);
     };
 
 } // namespace freertos
