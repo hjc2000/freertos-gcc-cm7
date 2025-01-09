@@ -1,6 +1,8 @@
 #pragma once
 #include <stddef.h>
 
+struct xHeapStats;
+
 namespace freertos
 {
     /// @brief 空闲内存块链表节点。
@@ -32,6 +34,7 @@ namespace freertos
         void *Malloc(size_t xWantedSize);
         void Free(void *pv);
         void *Calloc(size_t xNum, size_t xSize);
+        void GetHeapStats(xHeapStats *pxHeapStats);
     };
 
 } // namespace freertos

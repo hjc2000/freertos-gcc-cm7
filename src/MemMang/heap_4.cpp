@@ -141,7 +141,7 @@ extern "C"
         return _heap4.Calloc(xNum, xSize);
     }
 
-    void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
+    void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert)
     {
         freertos::BlockLink_t *pxIterator;
         uint8_t *puc;
@@ -207,53 +207,7 @@ extern "C"
 
     void vPortGetHeapStats(HeapStats_t *pxHeapStats)
     {
-        freertos::BlockLink_t *pxBlock;
-        size_t xBlocks = 0, xMaxSize = 0, xMinSize = portMAX_DELAY; /* portMAX_DELAY used as a portable way of getting the maximum value. */
-
-        vTaskSuspendAll();
-        {
-            pxBlock = _heap4.xStart._next_free_block;
-
-            /* pxBlock will be NULL if the heap has not been initialised.  The heap
-             * is initialised automatically when the first allocation is made. */
-            if (pxBlock != NULL)
-            {
-                while (pxBlock != _heap4.pxEnd)
-                {
-                    /* Increment the number of blocks and record the largest block seen
-                     * so far. */
-                    xBlocks++;
-
-                    if (pxBlock->_size > xMaxSize)
-                    {
-                        xMaxSize = pxBlock->_size;
-                    }
-
-                    if (pxBlock->_size < xMinSize)
-                    {
-                        xMinSize = pxBlock->_size;
-                    }
-
-                    /* Move to the next block in the chain until the last block is
-                     * reached. */
-                    pxBlock = pxBlock->_next_free_block;
-                }
-            }
-        }
-        (void)xTaskResumeAll();
-
-        pxHeapStats->xSizeOfLargestFreeBlockInBytes = xMaxSize;
-        pxHeapStats->xSizeOfSmallestFreeBlockInBytes = xMinSize;
-        pxHeapStats->xNumberOfFreeBlocks = xBlocks;
-
-        taskENTER_CRITICAL();
-        {
-            pxHeapStats->xAvailableHeapSpaceInBytes = _heap4.xFreeBytesRemaining;
-            pxHeapStats->xNumberOfSuccessfulAllocations = _heap4.xNumberOfSuccessfulAllocations;
-            pxHeapStats->xNumberOfSuccessfulFrees = _heap4.xNumberOfSuccessfulFrees;
-            pxHeapStats->xMinimumEverFreeBytesRemaining = _heap4.xMinimumEverFreeBytesRemaining;
-        }
-        taskEXIT_CRITICAL();
+        _heap4.GetHeapStats(pxHeapStats);
     }
 }
 
@@ -519,4 +473,55 @@ void *freertos::Heap4::Calloc(size_t xNum, size_t xSize)
     }
 
     return pv;
+}
+
+void freertos::Heap4::GetHeapStats(xHeapStats *pxHeapStats)
+{
+    freertos::BlockLink_t *pxBlock;
+    size_t xBlocks = 0, xMaxSize = 0, xMinSize = portMAX_DELAY; /* portMAX_DELAY used as a portable way of getting the maximum value. */
+
+    vTaskSuspendAll();
+    {
+        pxBlock = xStart._next_free_block;
+
+        /* pxBlock will be NULL if the heap has not been initialised.  The heap
+         * is initialised automatically when the first allocation is made. */
+        if (pxBlock != NULL)
+        {
+            while (pxBlock != pxEnd)
+            {
+                /* Increment the number of blocks and record the largest block seen
+                 * so far. */
+                xBlocks++;
+
+                if (pxBlock->_size > xMaxSize)
+                {
+                    xMaxSize = pxBlock->_size;
+                }
+
+                if (pxBlock->_size < xMinSize)
+                {
+                    xMinSize = pxBlock->_size;
+                }
+
+                /* Move to the next block in the chain until the last block is
+                 * reached. */
+                pxBlock = pxBlock->_next_free_block;
+            }
+        }
+    }
+    (void)xTaskResumeAll();
+
+    pxHeapStats->xSizeOfLargestFreeBlockInBytes = xMaxSize;
+    pxHeapStats->xSizeOfSmallestFreeBlockInBytes = xMinSize;
+    pxHeapStats->xNumberOfFreeBlocks = xBlocks;
+
+    taskENTER_CRITICAL();
+    {
+        pxHeapStats->xAvailableHeapSpaceInBytes = xFreeBytesRemaining;
+        pxHeapStats->xNumberOfSuccessfulAllocations = xNumberOfSuccessfulAllocations;
+        pxHeapStats->xNumberOfSuccessfulFrees = xNumberOfSuccessfulFrees;
+        pxHeapStats->xMinimumEverFreeBytesRemaining = xMinimumEverFreeBytesRemaining;
+    }
+    taskEXIT_CRITICAL();
 }
