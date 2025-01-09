@@ -94,20 +94,23 @@ namespace
         (pxBlock->_size) &= ~heapBLOCK_ALLOCATED_BITMASK;
     }
 
+    uint8_t _ucHeap[configTOTAL_HEAP_SIZE];
+
+    /* Create a couple of list links to mark the start and end of the list. */
+    BlockLink_t xStart;
+    BlockLink_t *pxEnd = NULL;
+
+    /* Keeps track of the number of calls to allocate and free memory as well as the
+     * number of free bytes remaining, but says nothing about fragmentation. */
+    size_t xFreeBytesRemaining = 0U;
+    size_t xMinimumEverFreeBytesRemaining = 0U;
+    size_t xNumberOfSuccessfulAllocations = 0;
+    size_t xNumberOfSuccessfulFrees = 0;
+
 } // namespace
 
 extern "C"
 {
-/* Allocate the memory for the heap. */
-#if (configAPPLICATION_ALLOCATED_HEAP == 1)
-
-    /* The application writer has already defined the array used for the RTOS
-     * heap - probably so it can be placed in a special segment or address. */
-    extern uint8_t ucHeap[configTOTAL_HEAP_SIZE];
-#else
-    PRIVILEGED_DATA static uint8_t ucHeap[configTOTAL_HEAP_SIZE];
-#endif /* configAPPLICATION_ALLOCATED_HEAP */
-
     /*-----------------------------------------------------------*/
 
     /*
@@ -116,28 +119,13 @@ extern "C"
      * the block in front it and/or the block behind it if the memory blocks are
      * adjacent to each other.
      */
-    static void prvInsertBlockIntoFreeList(BlockLink_t *pxBlockToInsert) PRIVILEGED_FUNCTION;
+    void prvInsertBlockIntoFreeList(BlockLink_t *pxBlockToInsert);
 
     /*
      * Called automatically to setup the required heap structures the first time
      * pvPortMalloc() is called.
      */
-    static void prvHeapInit(void) PRIVILEGED_FUNCTION;
-
-    /*-----------------------------------------------------------*/
-
-    /* Create a couple of list links to mark the start and end of the list. */
-    PRIVILEGED_DATA static BlockLink_t xStart;
-    PRIVILEGED_DATA static BlockLink_t *pxEnd = NULL;
-
-    /* Keeps track of the number of calls to allocate and free memory as well as the
-     * number of free bytes remaining, but says nothing about fragmentation. */
-    PRIVILEGED_DATA static size_t xFreeBytesRemaining = 0U;
-    PRIVILEGED_DATA static size_t xMinimumEverFreeBytesRemaining = 0U;
-    PRIVILEGED_DATA static size_t xNumberOfSuccessfulAllocations = 0;
-    PRIVILEGED_DATA static size_t xNumberOfSuccessfulFrees = 0;
-
-    /*-----------------------------------------------------------*/
+    void prvHeapInit(void);
 
     void *pvPortMalloc(size_t xWantedSize)
     {
@@ -366,8 +354,7 @@ extern "C"
 
     /*-----------------------------------------------------------*/
 
-    void *pvPortCalloc(size_t xNum,
-                       size_t xSize)
+    void *pvPortCalloc(size_t xNum, size_t xSize)
     {
         void *pv = NULL;
 
@@ -386,7 +373,7 @@ extern "C"
 
     /*-----------------------------------------------------------*/
 
-    static void prvHeapInit(void) /* PRIVILEGED_FUNCTION */
+    void prvHeapInit(void) /* PRIVILEGED_FUNCTION */
     {
         BlockLink_t *pxFirstFreeBlock;
         uint8_t *pucAlignedHeap;
@@ -394,13 +381,13 @@ extern "C"
         size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 
         /* Ensure the heap starts on a correctly aligned boundary. */
-        uxAddress = (portPOINTER_SIZE_TYPE)ucHeap;
+        uxAddress = (portPOINTER_SIZE_TYPE)_ucHeap;
 
         if ((uxAddress & portBYTE_ALIGNMENT_MASK) != 0)
         {
             uxAddress += (portBYTE_ALIGNMENT - 1);
             uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
-            xTotalHeapSize -= uxAddress - (portPOINTER_SIZE_TYPE)ucHeap;
+            xTotalHeapSize -= uxAddress - (portPOINTER_SIZE_TYPE)_ucHeap;
         }
 
         pucAlignedHeap = (uint8_t *)uxAddress;
@@ -432,7 +419,7 @@ extern "C"
 
     /*-----------------------------------------------------------*/
 
-    static void prvInsertBlockIntoFreeList(BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
+    void prvInsertBlockIntoFreeList(BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
     {
         BlockLink_t *pxIterator;
         uint8_t *puc;
