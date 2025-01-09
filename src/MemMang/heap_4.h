@@ -1,5 +1,6 @@
 #pragma once
 #include <stddef.h>
+#include <stdint.h>
 
 struct xHeapStats;
 
@@ -27,7 +28,7 @@ namespace freertos
         void InsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
 
     public:
-        Heap4();
+        Heap4(uint8_t *buffer, size_t size);
 
         /* Create a couple of list links to mark the start and end of the list. */
         BlockLink_t xStart;

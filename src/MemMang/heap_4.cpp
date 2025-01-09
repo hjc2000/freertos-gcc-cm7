@@ -85,9 +85,9 @@ namespace
         (pxBlock->_size) &= ~heapBLOCK_ALLOCATED_BITMASK;
     }
 
-    uint8_t _ucHeap[configTOTAL_HEAP_SIZE];
+    uint8_t _buffer[configTOTAL_HEAP_SIZE];
 
-    freertos::Heap4 _heap4;
+    freertos::Heap4 _heap4{_buffer, sizeof(_buffer)};
 
 } // namespace
 
@@ -203,21 +203,21 @@ void freertos::Heap4::InsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToIn
     }
 }
 
-freertos::Heap4::Heap4()
+freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 {
     BlockLink_t *pxFirstFreeBlock;
     uint8_t *pucAlignedHeap;
     portPOINTER_SIZE_TYPE uxAddress;
-    size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
+    size_t xTotalHeapSize = size;
 
     /* Ensure the heap starts on a correctly aligned boundary. */
-    uxAddress = (portPOINTER_SIZE_TYPE)_ucHeap;
+    uxAddress = (portPOINTER_SIZE_TYPE)buffer;
 
     if ((uxAddress & portBYTE_ALIGNMENT_MASK) != 0)
     {
         uxAddress += (portBYTE_ALIGNMENT - 1);
         uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
-        xTotalHeapSize -= uxAddress - (portPOINTER_SIZE_TYPE)_ucHeap;
+        xTotalHeapSize -= uxAddress - (portPOINTER_SIZE_TYPE)buffer;
     }
 
     pucAlignedHeap = (uint8_t *)uxAddress;
