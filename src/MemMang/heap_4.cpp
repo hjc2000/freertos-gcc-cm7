@@ -103,6 +103,50 @@ namespace freertos
     class Heap4
     {
     public:
+        Heap4()
+        {
+            BlockLink_t *pxFirstFreeBlock;
+            uint8_t *pucAlignedHeap;
+            portPOINTER_SIZE_TYPE uxAddress;
+            size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
+
+            /* Ensure the heap starts on a correctly aligned boundary. */
+            uxAddress = (portPOINTER_SIZE_TYPE)_ucHeap;
+
+            if ((uxAddress & portBYTE_ALIGNMENT_MASK) != 0)
+            {
+                uxAddress += (portBYTE_ALIGNMENT - 1);
+                uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
+                xTotalHeapSize -= uxAddress - (portPOINTER_SIZE_TYPE)_ucHeap;
+            }
+
+            pucAlignedHeap = (uint8_t *)uxAddress;
+
+            /* xStart is used to hold a pointer to the first item in the list of free
+             * blocks.  The void cast is used to prevent compiler warnings. */
+            xStart._next_free_block = (BlockLink_t *)pucAlignedHeap;
+            xStart._size = (size_t)0;
+
+            /* pxEnd is used to mark the end of the list of free blocks and is inserted
+             * at the end of the heap space. */
+            uxAddress = ((portPOINTER_SIZE_TYPE)pucAlignedHeap) + xTotalHeapSize;
+            uxAddress -= _size_of_heap_block_linklist_element;
+            uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
+            pxEnd = (BlockLink_t *)uxAddress;
+            pxEnd->_size = 0;
+            pxEnd->_next_free_block = NULL;
+
+            /* To start with there is a single free block that is sized to take up the
+             * entire heap space, minus the space taken by pxEnd. */
+            pxFirstFreeBlock = (BlockLink_t *)pucAlignedHeap;
+            pxFirstFreeBlock->_size = (size_t)(uxAddress - (portPOINTER_SIZE_TYPE)pxFirstFreeBlock);
+            pxFirstFreeBlock->_next_free_block = pxEnd;
+
+            /* Only one block exists - and it covers the entire usable heap space. */
+            xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->_size;
+            xFreeBytesRemaining = pxFirstFreeBlock->_size;
+        }
+
         /* Create a couple of list links to mark the start and end of the list. */
         BlockLink_t xStart;
         BlockLink_t *pxEnd = NULL;
@@ -134,12 +178,6 @@ extern "C"
      */
     void prvInsertBlockIntoFreeList(BlockLink_t *pxBlockToInsert);
 
-    /*
-     * Called automatically to setup the required heap structures the first time
-     * pvPortMalloc() is called.
-     */
-    void prvHeapInit(void);
-
     void *pvPortMalloc(size_t xWantedSize)
     {
         BlockLink_t *pxBlock;
@@ -154,7 +192,8 @@ extern "C"
              * initialisation to setup the list of free blocks. */
             if (_heap4.pxEnd == NULL)
             {
-                prvHeapInit();
+                // 已被构造函数取代。
+                //  prvHeapInit();
             }
             else
             {
@@ -383,54 +422,6 @@ extern "C"
 
         return pv;
     }
-
-    /*-----------------------------------------------------------*/
-
-    void prvHeapInit(void) /* PRIVILEGED_FUNCTION */
-    {
-        BlockLink_t *pxFirstFreeBlock;
-        uint8_t *pucAlignedHeap;
-        portPOINTER_SIZE_TYPE uxAddress;
-        size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
-
-        /* Ensure the heap starts on a correctly aligned boundary. */
-        uxAddress = (portPOINTER_SIZE_TYPE)_ucHeap;
-
-        if ((uxAddress & portBYTE_ALIGNMENT_MASK) != 0)
-        {
-            uxAddress += (portBYTE_ALIGNMENT - 1);
-            uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
-            xTotalHeapSize -= uxAddress - (portPOINTER_SIZE_TYPE)_ucHeap;
-        }
-
-        pucAlignedHeap = (uint8_t *)uxAddress;
-
-        /* xStart is used to hold a pointer to the first item in the list of free
-         * blocks.  The void cast is used to prevent compiler warnings. */
-        _heap4.xStart._next_free_block = (BlockLink_t *)pucAlignedHeap;
-        _heap4.xStart._size = (size_t)0;
-
-        /* pxEnd is used to mark the end of the list of free blocks and is inserted
-         * at the end of the heap space. */
-        uxAddress = ((portPOINTER_SIZE_TYPE)pucAlignedHeap) + xTotalHeapSize;
-        uxAddress -= _size_of_heap_block_linklist_element;
-        uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
-        _heap4.pxEnd = (BlockLink_t *)uxAddress;
-        _heap4.pxEnd->_size = 0;
-        _heap4.pxEnd->_next_free_block = NULL;
-
-        /* To start with there is a single free block that is sized to take up the
-         * entire heap space, minus the space taken by pxEnd. */
-        pxFirstFreeBlock = (BlockLink_t *)pucAlignedHeap;
-        pxFirstFreeBlock->_size = (size_t)(uxAddress - (portPOINTER_SIZE_TYPE)pxFirstFreeBlock);
-        pxFirstFreeBlock->_next_free_block = _heap4.pxEnd;
-
-        /* Only one block exists - and it covers the entire usable heap space. */
-        _heap4.xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->_size;
-        _heap4.xFreeBytesRemaining = pxFirstFreeBlock->_size;
-    }
-
-    /*-----------------------------------------------------------*/
 
     void prvInsertBlockIntoFreeList(BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
     {
