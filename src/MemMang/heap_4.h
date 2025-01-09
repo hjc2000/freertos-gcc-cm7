@@ -17,6 +17,15 @@ namespace freertos
 
     class Heap4
     {
+    private:
+        /*
+         * Inserts a block of memory that is being freed into the correct position in
+         * the list of free memory blocks.  The block being freed will be merged with
+         * the block in front it and/or the block behind it if the memory blocks are
+         * adjacent to each other.
+         */
+        void InsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
+
     public:
         Heap4();
 

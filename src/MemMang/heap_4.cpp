@@ -93,14 +93,6 @@ namespace
 
 extern "C"
 {
-    /*
-     * Inserts a block of memory that is being freed into the correct position in
-     * the list of free memory blocks.  The block being freed will be merged with
-     * the block in front it and/or the block behind it if the memory blocks are
-     * adjacent to each other.
-     */
-    void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
-
     void *pvPortMalloc(size_t xWantedSize)
     {
         return _heap4.Malloc(xWantedSize);
@@ -141,73 +133,73 @@ extern "C"
         return _heap4.Calloc(xNum, xSize);
     }
 
-    void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert)
-    {
-        freertos::BlockLink_t *pxIterator;
-        uint8_t *puc;
-
-        /* Iterate through the list until a block is found that has a higher address
-         * than the block being inserted. */
-        for (pxIterator = &_heap4.xStart; pxIterator->_next_free_block < pxBlockToInsert; pxIterator = pxIterator->_next_free_block)
-        {
-            /* Nothing to do here, just iterate to the right position. */
-        }
-
-        /* Do the block being inserted, and the block it is being inserted after
-         * make a contiguous block of memory? */
-        puc = (uint8_t *)pxIterator;
-
-        if ((puc + pxIterator->_size) == (uint8_t *)pxBlockToInsert)
-        {
-            pxIterator->_size += pxBlockToInsert->_size;
-            pxBlockToInsert = pxIterator;
-        }
-        else
-        {
-            mtCOVERAGE_TEST_MARKER();
-        }
-
-        /* Do the block being inserted, and the block it is being inserted before
-         * make a contiguous block of memory? */
-        puc = (uint8_t *)pxBlockToInsert;
-
-        if ((puc + pxBlockToInsert->_size) == (uint8_t *)pxIterator->_next_free_block)
-        {
-            if (pxIterator->_next_free_block != _heap4.pxEnd)
-            {
-                /* Form one big block from the two blocks. */
-                pxBlockToInsert->_size += pxIterator->_next_free_block->_size;
-                pxBlockToInsert->_next_free_block = pxIterator->_next_free_block->_next_free_block;
-            }
-            else
-            {
-                pxBlockToInsert->_next_free_block = _heap4.pxEnd;
-            }
-        }
-        else
-        {
-            pxBlockToInsert->_next_free_block = pxIterator->_next_free_block;
-        }
-
-        /* If the block being inserted plugged a gab, so was merged with the block
-         * before and the block after, then it's _next_free_block pointer will have
-         * already been set, and should not be set here as that would make it point
-         * to itself. */
-        if (pxIterator != pxBlockToInsert)
-        {
-            pxIterator->_next_free_block = pxBlockToInsert;
-        }
-        else
-        {
-            mtCOVERAGE_TEST_MARKER();
-        }
-    }
-
     /*-----------------------------------------------------------*/
 
     void vPortGetHeapStats(HeapStats_t *pxHeapStats)
     {
         _heap4.GetHeapStats(pxHeapStats);
+    }
+}
+
+void freertos::Heap4::InsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert)
+{
+    freertos::BlockLink_t *pxIterator;
+    uint8_t *puc;
+
+    /* Iterate through the list until a block is found that has a higher address
+     * than the block being inserted. */
+    for (pxIterator = &xStart; pxIterator->_next_free_block < pxBlockToInsert; pxIterator = pxIterator->_next_free_block)
+    {
+        /* Nothing to do here, just iterate to the right position. */
+    }
+
+    /* Do the block being inserted, and the block it is being inserted after
+     * make a contiguous block of memory? */
+    puc = (uint8_t *)pxIterator;
+
+    if ((puc + pxIterator->_size) == (uint8_t *)pxBlockToInsert)
+    {
+        pxIterator->_size += pxBlockToInsert->_size;
+        pxBlockToInsert = pxIterator;
+    }
+    else
+    {
+        mtCOVERAGE_TEST_MARKER();
+    }
+
+    /* Do the block being inserted, and the block it is being inserted before
+     * make a contiguous block of memory? */
+    puc = (uint8_t *)pxBlockToInsert;
+
+    if ((puc + pxBlockToInsert->_size) == (uint8_t *)pxIterator->_next_free_block)
+    {
+        if (pxIterator->_next_free_block != pxEnd)
+        {
+            /* Form one big block from the two blocks. */
+            pxBlockToInsert->_size += pxIterator->_next_free_block->_size;
+            pxBlockToInsert->_next_free_block = pxIterator->_next_free_block->_next_free_block;
+        }
+        else
+        {
+            pxBlockToInsert->_next_free_block = pxEnd;
+        }
+    }
+    else
+    {
+        pxBlockToInsert->_next_free_block = pxIterator->_next_free_block;
+    }
+
+    /* If the block being inserted plugged a gab, so was merged with the block
+     * before and the block after, then it's _next_free_block pointer will have
+     * already been set, and should not be set here as that would make it point
+     * to itself. */
+    if (pxIterator != pxBlockToInsert)
+    {
+        pxIterator->_next_free_block = pxBlockToInsert;
+    }
+    else
+    {
+        mtCOVERAGE_TEST_MARKER();
     }
 }
 
@@ -346,7 +338,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
                         pxBlock->_size = xWantedSize;
 
                         /* Insert the new block into the list of free blocks. */
-                        prvInsertBlockIntoFreeList(pxNewBlockLink);
+                        InsertBlockIntoFreeList(pxNewBlockLink);
                     }
                     else
                     {
@@ -441,7 +433,7 @@ void freertos::Heap4::Free(void *pv)
                     /* Add this block to the list of free blocks. */
                     xFreeBytesRemaining += pxLink->_size;
                     traceFREE(pv, pxLink->_size);
-                    prvInsertBlockIntoFreeList(((freertos::BlockLink_t *)pxLink));
+                    InsertBlockIntoFreeList(((freertos::BlockLink_t *)pxLink));
                     xNumberOfSuccessfulFrees++;
                 }
                 (void)xTaskResumeAll();
