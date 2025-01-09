@@ -96,18 +96,31 @@ namespace
 
     uint8_t _ucHeap[configTOTAL_HEAP_SIZE];
 
-    /* Create a couple of list links to mark the start and end of the list. */
-    BlockLink_t xStart;
-    BlockLink_t *pxEnd = NULL;
-
-    /* Keeps track of the number of calls to allocate and free memory as well as the
-     * number of free bytes remaining, but says nothing about fragmentation. */
-    size_t xFreeBytesRemaining = 0U;
-    size_t xMinimumEverFreeBytesRemaining = 0U;
-    size_t xNumberOfSuccessfulAllocations = 0;
-    size_t xNumberOfSuccessfulFrees = 0;
-
 } // namespace
+
+namespace freertos
+{
+    class Heap4
+    {
+    public:
+        /* Create a couple of list links to mark the start and end of the list. */
+        BlockLink_t xStart;
+        BlockLink_t *pxEnd = NULL;
+
+        /* Keeps track of the number of calls to allocate and free memory as well as the
+         * number of free bytes remaining, but says nothing about fragmentation. */
+        size_t xFreeBytesRemaining = 0U;
+        size_t xMinimumEverFreeBytesRemaining = 0U;
+        size_t xNumberOfSuccessfulAllocations = 0;
+        size_t xNumberOfSuccessfulFrees = 0;
+    };
+
+} // namespace freertos
+
+namespace
+{
+    freertos::Heap4 _heap4;
+}
 
 extern "C"
 {
@@ -139,7 +152,7 @@ extern "C"
         {
             /* If this is the first call to malloc then the heap will require
              * initialisation to setup the list of free blocks. */
-            if (pxEnd == NULL)
+            if (_heap4.pxEnd == NULL)
             {
                 prvHeapInit();
             }
@@ -175,12 +188,12 @@ extern "C"
              * the kernel, so it must be free. */
             if (heapBLOCK_SIZE_IS_VALID(xWantedSize))
             {
-                if ((xWantedSize > 0) && (xWantedSize <= xFreeBytesRemaining))
+                if ((xWantedSize > 0) && (xWantedSize <= _heap4.xFreeBytesRemaining))
                 {
                     /* Traverse the list from the start (lowest address) block until
                      * one of adequate size is found. */
-                    pxPreviousBlock = &xStart;
-                    pxBlock = xStart._next_free_block;
+                    pxPreviousBlock = &_heap4.xStart;
+                    pxBlock = _heap4.xStart._next_free_block;
 
                     while ((pxBlock->_size < xWantedSize) && (pxBlock->_next_free_block != NULL))
                     {
@@ -190,7 +203,7 @@ extern "C"
 
                     /* If the end marker was reached then a block of adequate size
                      * was not found. */
-                    if (pxBlock != pxEnd)
+                    if (pxBlock != _heap4.pxEnd)
                     {
                         /* Return the memory space pointed to - jumping over the
                          * BlockLink_t structure at its start. */
@@ -224,11 +237,11 @@ extern "C"
                             mtCOVERAGE_TEST_MARKER();
                         }
 
-                        xFreeBytesRemaining -= pxBlock->_size;
+                        _heap4.xFreeBytesRemaining -= pxBlock->_size;
 
-                        if (xFreeBytesRemaining < xMinimumEverFreeBytesRemaining)
+                        if (_heap4.xFreeBytesRemaining < _heap4.xMinimumEverFreeBytesRemaining)
                         {
-                            xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;
+                            _heap4.xMinimumEverFreeBytesRemaining = _heap4.xFreeBytesRemaining;
                         }
                         else
                         {
@@ -239,7 +252,7 @@ extern "C"
                          * by the application and has no "next" block. */
                         heapALLOCATE_BLOCK(pxBlock);
                         pxBlock->_next_free_block = NULL;
-                        xNumberOfSuccessfulAllocations++;
+                        _heap4.xNumberOfSuccessfulAllocations++;
                     }
                     else
                     {
@@ -312,10 +325,10 @@ extern "C"
                     vTaskSuspendAll();
                     {
                         /* Add this block to the list of free blocks. */
-                        xFreeBytesRemaining += pxLink->_size;
+                        _heap4.xFreeBytesRemaining += pxLink->_size;
                         traceFREE(pv, pxLink->_size);
                         prvInsertBlockIntoFreeList(((BlockLink_t *)pxLink));
-                        xNumberOfSuccessfulFrees++;
+                        _heap4.xNumberOfSuccessfulFrees++;
                     }
                     (void)xTaskResumeAll();
                 }
@@ -335,14 +348,14 @@ extern "C"
 
     size_t xPortGetFreeHeapSize(void)
     {
-        return xFreeBytesRemaining;
+        return _heap4.xFreeBytesRemaining;
     }
 
     /*-----------------------------------------------------------*/
 
     size_t xPortGetMinimumEverFreeHeapSize(void)
     {
-        return xMinimumEverFreeBytesRemaining;
+        return _heap4.xMinimumEverFreeBytesRemaining;
     }
 
     /*-----------------------------------------------------------*/
@@ -394,27 +407,27 @@ extern "C"
 
         /* xStart is used to hold a pointer to the first item in the list of free
          * blocks.  The void cast is used to prevent compiler warnings. */
-        xStart._next_free_block = (BlockLink_t *)pucAlignedHeap;
-        xStart._size = (size_t)0;
+        _heap4.xStart._next_free_block = (BlockLink_t *)pucAlignedHeap;
+        _heap4.xStart._size = (size_t)0;
 
         /* pxEnd is used to mark the end of the list of free blocks and is inserted
          * at the end of the heap space. */
         uxAddress = ((portPOINTER_SIZE_TYPE)pucAlignedHeap) + xTotalHeapSize;
         uxAddress -= _size_of_heap_block_linklist_element;
         uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
-        pxEnd = (BlockLink_t *)uxAddress;
-        pxEnd->_size = 0;
-        pxEnd->_next_free_block = NULL;
+        _heap4.pxEnd = (BlockLink_t *)uxAddress;
+        _heap4.pxEnd->_size = 0;
+        _heap4.pxEnd->_next_free_block = NULL;
 
         /* To start with there is a single free block that is sized to take up the
          * entire heap space, minus the space taken by pxEnd. */
         pxFirstFreeBlock = (BlockLink_t *)pucAlignedHeap;
         pxFirstFreeBlock->_size = (size_t)(uxAddress - (portPOINTER_SIZE_TYPE)pxFirstFreeBlock);
-        pxFirstFreeBlock->_next_free_block = pxEnd;
+        pxFirstFreeBlock->_next_free_block = _heap4.pxEnd;
 
         /* Only one block exists - and it covers the entire usable heap space. */
-        xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->_size;
-        xFreeBytesRemaining = pxFirstFreeBlock->_size;
+        _heap4.xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->_size;
+        _heap4.xFreeBytesRemaining = pxFirstFreeBlock->_size;
     }
 
     /*-----------------------------------------------------------*/
@@ -426,7 +439,7 @@ extern "C"
 
         /* Iterate through the list until a block is found that has a higher address
          * than the block being inserted. */
-        for (pxIterator = &xStart; pxIterator->_next_free_block < pxBlockToInsert; pxIterator = pxIterator->_next_free_block)
+        for (pxIterator = &_heap4.xStart; pxIterator->_next_free_block < pxBlockToInsert; pxIterator = pxIterator->_next_free_block)
         {
             /* Nothing to do here, just iterate to the right position. */
         }
@@ -451,7 +464,7 @@ extern "C"
 
         if ((puc + pxBlockToInsert->_size) == (uint8_t *)pxIterator->_next_free_block)
         {
-            if (pxIterator->_next_free_block != pxEnd)
+            if (pxIterator->_next_free_block != _heap4.pxEnd)
             {
                 /* Form one big block from the two blocks. */
                 pxBlockToInsert->_size += pxIterator->_next_free_block->_size;
@@ -459,7 +472,7 @@ extern "C"
             }
             else
             {
-                pxBlockToInsert->_next_free_block = pxEnd;
+                pxBlockToInsert->_next_free_block = _heap4.pxEnd;
             }
         }
         else
@@ -490,13 +503,13 @@ extern "C"
 
         vTaskSuspendAll();
         {
-            pxBlock = xStart._next_free_block;
+            pxBlock = _heap4.xStart._next_free_block;
 
             /* pxBlock will be NULL if the heap has not been initialised.  The heap
              * is initialised automatically when the first allocation is made. */
             if (pxBlock != NULL)
             {
-                while (pxBlock != pxEnd)
+                while (pxBlock != _heap4.pxEnd)
                 {
                     /* Increment the number of blocks and record the largest block seen
                      * so far. */
@@ -526,10 +539,10 @@ extern "C"
 
         taskENTER_CRITICAL();
         {
-            pxHeapStats->xAvailableHeapSpaceInBytes = xFreeBytesRemaining;
-            pxHeapStats->xNumberOfSuccessfulAllocations = xNumberOfSuccessfulAllocations;
-            pxHeapStats->xNumberOfSuccessfulFrees = xNumberOfSuccessfulFrees;
-            pxHeapStats->xMinimumEverFreeBytesRemaining = xMinimumEverFreeBytesRemaining;
+            pxHeapStats->xAvailableHeapSpaceInBytes = _heap4.xFreeBytesRemaining;
+            pxHeapStats->xNumberOfSuccessfulAllocations = _heap4.xNumberOfSuccessfulAllocations;
+            pxHeapStats->xNumberOfSuccessfulFrees = _heap4.xNumberOfSuccessfulFrees;
+            pxHeapStats->xMinimumEverFreeBytesRemaining = _heap4.xMinimumEverFreeBytesRemaining;
         }
         taskEXIT_CRITICAL();
     }
