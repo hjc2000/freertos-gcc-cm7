@@ -44,38 +44,60 @@ namespace
      * block must by correctly byte aligned. */
     size_t constexpr _size_of_heap_block_linklist_element = (sizeof(BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
 
-    /* Block sizes must not get too small. */
-    size_t constexpr heapMINIMUM_BLOCK_SIZE = ((size_t)(_size_of_heap_block_linklist_element << 1));
+    /// @brief 堆块的最小大小。
+    /// @note 将 _size_of_heap_block_linklist_element 左移 1 位，即乘 2，说明最小大小定为
+    /// _size_of_heap_block_linklist_element 的 2 倍。这可能是因为如果块太小了，链表的空间利用率
+    /// 很低，链表节点本身占用的内存都比指向的内存块大了，那这块内存就不值得用一个链表节点去指向它。
+    size_t constexpr _heap_minimum_block_size = ((size_t)(_size_of_heap_block_linklist_element << 1));
 
-    /* Assumes 8bit bytes! */
-    size_t constexpr heapBITS_PER_BYTE = ((size_t)8);
+    /// @brief 假设 1 个字节有 8 位。
+    size_t constexpr _bit_count_per_byte = ((size_t)8);
 
     /* Max value that fits in a size_t type. */
     size_t constexpr heapSIZE_MAX = (~((size_t)0));
 
-/* Check if multiplying a and b will result in overflow. */
-#define heapMULTIPLY_WILL_OVERFLOW(a, b) (((a) > 0) && ((b) > (heapSIZE_MAX / (a))))
+    /* Check if multiplying a and b will result in overflow. */
+    bool constexpr heapMULTIPLY_WILL_OVERFLOW(size_t a, size_t b)
+    {
+        return (((a) > 0) && ((b) > (heapSIZE_MAX / (a))));
+    }
 
-/* Check if adding a and b will result in overflow. */
-#define heapADD_WILL_OVERFLOW(a, b) ((a) > (heapSIZE_MAX - (b)))
+    /* Check if adding a and b will result in overflow. */
+    bool constexpr heapADD_WILL_OVERFLOW(size_t a, size_t b)
+    {
+        return ((a) > (heapSIZE_MAX - (b)));
+    }
+
+    /* MSB of the _size member of an BlockLink_t structure is used to track
+     * the allocation status of a block.  When MSB of the _size member of
+     * an BlockLink_t structure is set then the block belongs to the application.
+     * When the bit is free the block is still part of the free heap space. */
+    size_t constexpr heapBLOCK_ALLOCATED_BITMASK = ((size_t)1) << ((sizeof(size_t) * _bit_count_per_byte) - 1);
+
+    bool constexpr heapBLOCK_SIZE_IS_VALID(size_t _size)
+    {
+        return ((_size)&heapBLOCK_ALLOCATED_BITMASK) == 0;
+    }
+
+    bool constexpr heapBLOCK_IS_ALLOCATED(BlockLink_t *pxBlock)
+    {
+        return ((pxBlock->_size) & heapBLOCK_ALLOCATED_BITMASK) != 0;
+    }
+
+    void constexpr heapALLOCATE_BLOCK(BlockLink_t *pxBlock)
+    {
+        (pxBlock->_size) |= heapBLOCK_ALLOCATED_BITMASK;
+    }
+
+    void constexpr heapFREE_BLOCK(BlockLink_t *pxBlock)
+    {
+        (pxBlock->_size) &= ~heapBLOCK_ALLOCATED_BITMASK;
+    }
 
 } // namespace
 
 extern "C"
 {
-
-/* MSB of the _size member of an BlockLink_t structure is used to track
- * the allocation status of a block.  When MSB of the _size member of
- * an BlockLink_t structure is set then the block belongs to the application.
- * When the bit is free the block is still part of the free heap space. */
-#define heapBLOCK_ALLOCATED_BITMASK (((size_t)1) << ((sizeof(size_t) * heapBITS_PER_BYTE) - 1))
-#define heapBLOCK_SIZE_IS_VALID(_size) (((_size) & heapBLOCK_ALLOCATED_BITMASK) == 0)
-#define heapBLOCK_IS_ALLOCATED(pxBlock) (((pxBlock->_size) & heapBLOCK_ALLOCATED_BITMASK) != 0)
-#define heapALLOCATE_BLOCK(pxBlock) ((pxBlock->_size) |= heapBLOCK_ALLOCATED_BITMASK)
-#define heapFREE_BLOCK(pxBlock) ((pxBlock->_size) &= ~heapBLOCK_ALLOCATED_BITMASK)
-
-/*-----------------------------------------------------------*/
-
 /* Allocate the memory for the heap. */
 #if (configAPPLICATION_ALLOCATED_HEAP == 1)
 
@@ -145,7 +167,7 @@ extern "C"
                  * additional increment may also be needed for alignment. */
                 xAdditionalRequiredSize = _size_of_heap_block_linklist_element + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
 
-                if (heapADD_WILL_OVERFLOW(xWantedSize, xAdditionalRequiredSize) == 0)
+                if (!heapADD_WILL_OVERFLOW(xWantedSize, xAdditionalRequiredSize))
                 {
                     xWantedSize += xAdditionalRequiredSize;
                 }
@@ -163,7 +185,7 @@ extern "C"
              * top bit is set.  The top bit of the block size member of the BlockLink_t
              * structure is used to determine who owns the block - the application or
              * the kernel, so it must be free. */
-            if (heapBLOCK_SIZE_IS_VALID(xWantedSize) != 0)
+            if (heapBLOCK_SIZE_IS_VALID(xWantedSize))
             {
                 if ((xWantedSize > 0) && (xWantedSize <= xFreeBytesRemaining))
                 {
@@ -192,7 +214,7 @@ extern "C"
 
                         /* If the block is larger than required it can be split into
                          * two. */
-                        if ((pxBlock->_size - xWantedSize) > heapMINIMUM_BLOCK_SIZE)
+                        if ((pxBlock->_size - xWantedSize) > _heap_minimum_block_size)
                         {
                             /* This block is to be split into two.  Create a new
                              * block following the number of bytes requested. The void
@@ -283,10 +305,10 @@ extern "C"
             /* This casting is to keep the compiler from issuing warnings. */
             pxLink = (BlockLink_t *)puc;
 
-            configASSERT(heapBLOCK_IS_ALLOCATED(pxLink) != 0);
+            configASSERT(heapBLOCK_IS_ALLOCATED(pxLink));
             configASSERT(pxLink->_next_free_block == NULL);
 
-            if (heapBLOCK_IS_ALLOCATED(pxLink) != 0)
+            if (heapBLOCK_IS_ALLOCATED(pxLink))
             {
                 if (pxLink->_next_free_block == NULL)
                 {
@@ -349,7 +371,7 @@ extern "C"
     {
         void *pv = NULL;
 
-        if (heapMULTIPLY_WILL_OVERFLOW(xNum, xSize) == 0)
+        if (!heapMULTIPLY_WILL_OVERFLOW(xNum, xSize))
         {
             pv = pvPortMalloc(xNum * xSize);
 
