@@ -30,6 +30,7 @@ namespace freertos
         size_t xNumberOfSuccessfulFrees = 0;
 
         void *Malloc(size_t xWantedSize);
+        void Free(void *pv);
     };
 
 } // namespace freertos

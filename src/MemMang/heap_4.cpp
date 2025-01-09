@@ -110,54 +110,7 @@ extern "C"
 
     void vPortFree(void *pv)
     {
-        uint8_t *puc = (uint8_t *)pv;
-        freertos::BlockLink_t *pxLink;
-
-        if (pv != NULL)
-        {
-            /* The memory being freed will have an BlockLink_t structure immediately
-             * before it. */
-            puc -= _size_of_heap_block_linklist_element;
-
-            /* This casting is to keep the compiler from issuing warnings. */
-            pxLink = (freertos::BlockLink_t *)puc;
-
-            configASSERT(heapBLOCK_IS_ALLOCATED(pxLink));
-            configASSERT(pxLink->_next_free_block == NULL);
-
-            if (heapBLOCK_IS_ALLOCATED(pxLink))
-            {
-                if (pxLink->_next_free_block == NULL)
-                {
-                    /* The block is being returned to the heap - it is no longer
-                     * allocated. */
-                    heapFREE_BLOCK(pxLink);
-#if (configHEAP_CLEAR_MEMORY_ON_FREE == 1)
-                    {
-                        (void)memset(puc + _size_of_heap_block_linklist_element, 0, pxLink->_size - _size_of_heap_block_linklist_element);
-                    }
-#endif
-
-                    vTaskSuspendAll();
-                    {
-                        /* Add this block to the list of free blocks. */
-                        _heap4.xFreeBytesRemaining += pxLink->_size;
-                        traceFREE(pv, pxLink->_size);
-                        prvInsertBlockIntoFreeList(((freertos::BlockLink_t *)pxLink));
-                        _heap4.xNumberOfSuccessfulFrees++;
-                    }
-                    (void)xTaskResumeAll();
-                }
-                else
-                {
-                    mtCOVERAGE_TEST_MARKER();
-                }
-            }
-            else
-            {
-                mtCOVERAGE_TEST_MARKER();
-            }
-        }
+        _heap4.Free(pv);
     }
 
     /*-----------------------------------------------------------*/
@@ -509,4 +462,56 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 
     configASSERT((((size_t)pvReturn) & (size_t)portBYTE_ALIGNMENT_MASK) == 0);
     return pvReturn;
+}
+
+void freertos::Heap4::Free(void *pv)
+{
+    uint8_t *puc = (uint8_t *)pv;
+    freertos::BlockLink_t *pxLink;
+
+    if (pv != NULL)
+    {
+        /* The memory being freed will have an BlockLink_t structure immediately
+         * before it. */
+        puc -= _size_of_heap_block_linklist_element;
+
+        /* This casting is to keep the compiler from issuing warnings. */
+        pxLink = (freertos::BlockLink_t *)puc;
+
+        configASSERT(heapBLOCK_IS_ALLOCATED(pxLink));
+        configASSERT(pxLink->_next_free_block == NULL);
+
+        if (heapBLOCK_IS_ALLOCATED(pxLink))
+        {
+            if (pxLink->_next_free_block == NULL)
+            {
+                /* The block is being returned to the heap - it is no longer
+                 * allocated. */
+                heapFREE_BLOCK(pxLink);
+#if (configHEAP_CLEAR_MEMORY_ON_FREE == 1)
+                {
+                    (void)memset(puc + _size_of_heap_block_linklist_element, 0, pxLink->_size - _size_of_heap_block_linklist_element);
+                }
+#endif
+
+                vTaskSuspendAll();
+                {
+                    /* Add this block to the list of free blocks. */
+                    xFreeBytesRemaining += pxLink->_size;
+                    traceFREE(pv, pxLink->_size);
+                    prvInsertBlockIntoFreeList(((freertos::BlockLink_t *)pxLink));
+                    xNumberOfSuccessfulFrees++;
+                }
+                (void)xTaskResumeAll();
+            }
+            else
+            {
+                mtCOVERAGE_TEST_MARKER();
+            }
+        }
+        else
+        {
+            mtCOVERAGE_TEST_MARKER();
+        }
+    }
 }
