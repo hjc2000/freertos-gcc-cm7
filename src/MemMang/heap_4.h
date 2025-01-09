@@ -28,11 +28,14 @@ namespace freertos
         void InsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
 
     public:
+        /// @brief 构造一个基于 freertos 的 heap4 的堆管理器。
+        /// @param buffer 要被作为堆的缓冲区。
+        /// @param size 缓冲区大小。
         Heap4(uint8_t *buffer, size_t size);
 
         /* Create a couple of list links to mark the start and end of the list. */
         BlockLink_t xStart;
-        BlockLink_t *pxEnd = NULL;
+        BlockLink_t *pxEnd = nullptr;
 
         /* Keeps track of the number of calls to allocate and free memory as well as the
          * number of free bytes remaining, but says nothing about fragmentation. */

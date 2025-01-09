@@ -86,7 +86,6 @@ namespace
     }
 
     uint8_t _buffer[configTOTAL_HEAP_SIZE];
-
     freertos::Heap4 _heap4{_buffer, sizeof(_buffer)};
 
 } // namespace
