@@ -6,6 +6,7 @@
  * See heap_1.c, heap_2.c and heap_3.c for alternative implementations, and the
  * memory management pages of https://www.FreeRTOS.org for more information.
  */
+#include "heap_4.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -30,19 +31,9 @@
 
 namespace
 {
-    /// @brief 空闲内存块链表节点。
-    struct BlockLink_t
-    {
-        /// @brief 下一个空闲内存块。
-        BlockLink_t *_next_free_block{};
-
-        /// @brief 空闲内存块大小。
-        size_t _size{};
-    };
-
     /* The size of the structure placed at the beginning of each allocated memory
      * block must by correctly byte aligned. */
-    size_t constexpr _size_of_heap_block_linklist_element = (sizeof(BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
+    size_t constexpr _size_of_heap_block_linklist_element = (sizeof(freertos::BlockLink_t) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
 
     /// @brief 堆块的最小大小。
     /// @note 将 _size_of_heap_block_linklist_element 左移 1 位，即乘 2，说明最小大小定为
@@ -79,17 +70,17 @@ namespace
         return ((_size)&heapBLOCK_ALLOCATED_BITMASK) == 0;
     }
 
-    bool constexpr heapBLOCK_IS_ALLOCATED(BlockLink_t *pxBlock)
+    bool constexpr heapBLOCK_IS_ALLOCATED(freertos::BlockLink_t *pxBlock)
     {
         return ((pxBlock->_size) & heapBLOCK_ALLOCATED_BITMASK) != 0;
     }
 
-    void constexpr heapALLOCATE_BLOCK(BlockLink_t *pxBlock)
+    void constexpr heapALLOCATE_BLOCK(freertos::BlockLink_t *pxBlock)
     {
         (pxBlock->_size) |= heapBLOCK_ALLOCATED_BITMASK;
     }
 
-    void constexpr heapFREE_BLOCK(BlockLink_t *pxBlock)
+    void constexpr heapFREE_BLOCK(freertos::BlockLink_t *pxBlock)
     {
         (pxBlock->_size) &= ~heapBLOCK_ALLOCATED_BITMASK;
     }
@@ -176,13 +167,13 @@ extern "C"
      * the block in front it and/or the block behind it if the memory blocks are
      * adjacent to each other.
      */
-    void prvInsertBlockIntoFreeList(BlockLink_t *pxBlockToInsert);
+    void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
 
     void *pvPortMalloc(size_t xWantedSize)
     {
-        BlockLink_t *pxBlock;
-        BlockLink_t *pxPreviousBlock;
-        BlockLink_t *pxNewBlockLink;
+        freertos::BlockLink_t *pxBlock;
+        freertos::BlockLink_t *pxPreviousBlock;
+        freertos::BlockLink_t *pxNewBlockLink;
         void *pvReturn = NULL;
         size_t xAdditionalRequiredSize;
 
@@ -260,7 +251,7 @@ extern "C"
                              * block following the number of bytes requested. The void
                              * cast is used to prevent byte alignment warnings from the
                              * compiler. */
-                            pxNewBlockLink = (BlockLink_t *)(((uint8_t *)pxBlock) + xWantedSize);
+                            pxNewBlockLink = (freertos::BlockLink_t *)(((uint8_t *)pxBlock) + xWantedSize);
                             configASSERT((((size_t)pxNewBlockLink) & portBYTE_ALIGNMENT_MASK) == 0);
 
                             /* Calculate the sizes of two blocks split from the
@@ -334,7 +325,7 @@ extern "C"
     void vPortFree(void *pv)
     {
         uint8_t *puc = (uint8_t *)pv;
-        BlockLink_t *pxLink;
+        freertos::BlockLink_t *pxLink;
 
         if (pv != NULL)
         {
@@ -343,7 +334,7 @@ extern "C"
             puc -= _size_of_heap_block_linklist_element;
 
             /* This casting is to keep the compiler from issuing warnings. */
-            pxLink = (BlockLink_t *)puc;
+            pxLink = (freertos::BlockLink_t *)puc;
 
             configASSERT(heapBLOCK_IS_ALLOCATED(pxLink));
             configASSERT(pxLink->_next_free_block == NULL);
@@ -366,7 +357,7 @@ extern "C"
                         /* Add this block to the list of free blocks. */
                         _heap4.xFreeBytesRemaining += pxLink->_size;
                         traceFREE(pv, pxLink->_size);
-                        prvInsertBlockIntoFreeList(((BlockLink_t *)pxLink));
+                        prvInsertBlockIntoFreeList(((freertos::BlockLink_t *)pxLink));
                         _heap4.xNumberOfSuccessfulFrees++;
                     }
                     (void)xTaskResumeAll();
@@ -423,9 +414,9 @@ extern "C"
         return pv;
     }
 
-    void prvInsertBlockIntoFreeList(BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
+    void prvInsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert) /* PRIVILEGED_FUNCTION */
     {
-        BlockLink_t *pxIterator;
+        freertos::BlockLink_t *pxIterator;
         uint8_t *puc;
 
         /* Iterate through the list until a block is found that has a higher address
@@ -489,7 +480,7 @@ extern "C"
 
     void vPortGetHeapStats(HeapStats_t *pxHeapStats)
     {
-        BlockLink_t *pxBlock;
+        freertos::BlockLink_t *pxBlock;
         size_t xBlocks = 0, xMaxSize = 0, xMinSize = portMAX_DELAY; /* portMAX_DELAY used as a portable way of getting the maximum value. */
 
         vTaskSuspendAll();
