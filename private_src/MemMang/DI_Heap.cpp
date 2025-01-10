@@ -36,6 +36,11 @@ bsp::IHeap &DI_Heap()
     return _heap4;
 }
 
+std::shared_ptr<bsp::IHeap> DI_CreateHeap(uint8_t *buffer, size_t size)
+{
+    return std::shared_ptr<bsp::IHeap>{new freertos::Heap4{buffer, size}};
+}
+
 /**
  * 实现 freertos 的函数。
  */
