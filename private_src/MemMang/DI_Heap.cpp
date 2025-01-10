@@ -38,6 +38,9 @@ bsp::IHeap &DI_Heap()
     return _heap4;
 }
 
+/**
+ * 实现 freertos 的函数。
+ */
 extern "C"
 {
     void *pvPortMalloc(size_t xWantedSize)
