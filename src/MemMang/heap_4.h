@@ -20,7 +20,7 @@ namespace freertos
     class Heap4
     {
     private:
-#pragma region 常量
+#pragma region constexpr
         /// @brief 假设 1 个字节有 8 位。
         static size_t constexpr _bit_count_per_byte = (size_t)8;
 
