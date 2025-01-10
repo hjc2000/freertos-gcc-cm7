@@ -1,6 +1,5 @@
 #pragma once
-#include <stddef.h>
-#include <stdint.h>
+#include <bsp-interface/IHeap.h>
 
 struct xHeapStats;
 
@@ -17,7 +16,8 @@ namespace freertos
     };
 
     /// @brief 基于 freertos 的 heap4 的堆管理器。
-    class Heap4
+    class Heap4 :
+        public bsp::IHeap
     {
     private:
 #pragma region constexpr
@@ -89,8 +89,8 @@ namespace freertos
         size_t xNumberOfSuccessfulAllocations = 0;
         size_t xNumberOfSuccessfulFrees = 0;
 
-        void *Malloc(size_t xWantedSize);
-        void Free(void *pv);
+        virtual void *Malloc(size_t xWantedSize) override;
+        virtual void Free(void *pv) override;
         void *Calloc(size_t xNum, size_t xSize);
         void GetHeapStats(xHeapStats *pxHeapStats);
     };
