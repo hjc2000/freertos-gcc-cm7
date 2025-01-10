@@ -95,6 +95,6 @@ namespace freertos
         void GetHeapStats(xHeapStats *pxHeapStats);
     };
 
-    /// @brief 全局的 Heap4 对象。
+    /// @brief 全局的 freertos::Heap4 对象。
     extern freertos::Heap4 _heap4;
 } // namespace freertos
