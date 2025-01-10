@@ -427,12 +427,12 @@ void freertos::Heap4::GetHeapStats(xHeapStats *pxHeapStats)
     taskEXIT_CRITICAL();
 }
 
-uint8_t *freertos::Heap4::begin()
+uint8_t *freertos::Heap4::begin() const
 {
     return _buffer;
 }
 
-uint8_t *freertos::Heap4::end()
+uint8_t *freertos::Heap4::end() const
 {
     return _buffer + _size;
 }
