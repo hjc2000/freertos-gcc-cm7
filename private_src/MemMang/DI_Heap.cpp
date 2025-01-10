@@ -1,4 +1,5 @@
 #include "Heap4.h"
+#include <bsp-interface/di/heap.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -21,32 +22,48 @@
 #define configHEAP_CLEAR_MEMORY_ON_FREE 0
 #endif
 
+namespace
+{
+    uint8_t _buffer[configTOTAL_HEAP_SIZE];
+    freertos::Heap4 _heap4{_buffer, sizeof(_buffer)};
+
+} // namespace
+
+/// @brief 获取主堆。
+/// @note 主堆是系统一启动，main 函数的第一条语句就能用的堆。这种堆通常是建立在 SRAM
+/// 中，除非能在 main 函数执行之前就配置好 SDRAM 等外部内存。
+/// @return
+bsp::IHeap &DI_Heap()
+{
+    return _heap4;
+}
+
 extern "C"
 {
     void *pvPortMalloc(size_t xWantedSize)
     {
-        return freertos::_heap4.Malloc(xWantedSize);
+        return _heap4.Malloc(xWantedSize);
     }
 
     /*-----------------------------------------------------------*/
 
     void vPortFree(void *pv)
     {
-        freertos::_heap4.Free(pv);
+        _heap4.Free(pv);
     }
 
     /*-----------------------------------------------------------*/
 
     size_t xPortGetFreeHeapSize(void)
     {
-        return freertos::_heap4.xFreeBytesRemaining;
+        return _heap4.xFreeBytesRemaining;
     }
 
     /*-----------------------------------------------------------*/
 
     size_t xPortGetMinimumEverFreeHeapSize(void)
     {
-        return freertos::_heap4.xMinimumEverFreeBytesRemaining;
+        return _heap4.xMinimumEverFreeBytesRemaining;
     }
 
     /*-----------------------------------------------------------*/
@@ -60,13 +77,13 @@ extern "C"
 
     void *pvPortCalloc(size_t xNum, size_t xSize)
     {
-        return freertos::_heap4.Calloc(xNum, xSize);
+        return _heap4.Calloc(xNum, xSize);
     }
 
     /*-----------------------------------------------------------*/
 
     void vPortGetHeapStats(HeapStats_t *pxHeapStats)
     {
-        freertos::_heap4.GetHeapStats(pxHeapStats);
+        _heap4.GetHeapStats(pxHeapStats);
     }
 }

@@ -41,11 +41,7 @@ namespace
     /// 很低，链表节点本身占用的内存都比指向的内存块大了，那这块内存就不值得用一个链表节点去指向它。
     size_t constexpr _heap_minimum_block_size = ((size_t)(_size_of_heap_block_linklist_element << 1));
 
-    uint8_t _buffer[configTOTAL_HEAP_SIZE];
-
 } // namespace
-
-freertos::Heap4 freertos::_heap4{_buffer, sizeof(_buffer)};
 
 void freertos::Heap4::InsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert)
 {

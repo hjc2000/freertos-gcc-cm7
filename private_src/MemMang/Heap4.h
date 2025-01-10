@@ -117,7 +117,4 @@ namespace freertos
         /// @return
         virtual size_t RemainingFreeSize() const override;
     };
-
-    /// @brief 全局的 freertos::Heap4 对象。
-    extern freertos::Heap4 _heap4;
 } // namespace freertos
