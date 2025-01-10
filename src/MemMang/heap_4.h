@@ -16,15 +16,13 @@ namespace freertos
         size_t _size{};
     };
 
+    /// @brief 基于 freertos 的 heap4 的堆管理器。
     class Heap4
     {
     private:
-        /*
-         * Inserts a block of memory that is being freed into the correct position in
-         * the list of free memory blocks.  The block being freed will be merged with
-         * the block in front it and/or the block behind it if the memory blocks are
-         * adjacent to each other.
-         */
+        /// @brief 将被释放的内存插入链表。
+        /// @note 如果发现与链表中要插入位置的前一个节点和后一个节点指向的内存是连续的，会合并这些节点。
+        /// @param pxBlockToInsert
         void InsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
 
     public:
