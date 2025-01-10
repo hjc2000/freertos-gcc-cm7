@@ -95,4 +95,5 @@ namespace freertos
         void GetHeapStats(xHeapStats *pxHeapStats);
     };
 
+    extern freertos::Heap4 _heap4;
 } // namespace freertos

@@ -42,59 +42,10 @@ namespace
     size_t constexpr _heap_minimum_block_size = ((size_t)(_size_of_heap_block_linklist_element << 1));
 
     uint8_t _buffer[configTOTAL_HEAP_SIZE];
-    freertos::Heap4 _heap4{_buffer, sizeof(_buffer)};
 
 } // namespace
 
-extern "C"
-{
-    void *pvPortMalloc(size_t xWantedSize)
-    {
-        return _heap4.Malloc(xWantedSize);
-    }
-
-    /*-----------------------------------------------------------*/
-
-    void vPortFree(void *pv)
-    {
-        _heap4.Free(pv);
-    }
-
-    /*-----------------------------------------------------------*/
-
-    size_t xPortGetFreeHeapSize(void)
-    {
-        return _heap4.xFreeBytesRemaining;
-    }
-
-    /*-----------------------------------------------------------*/
-
-    size_t xPortGetMinimumEverFreeHeapSize(void)
-    {
-        return _heap4.xMinimumEverFreeBytesRemaining;
-    }
-
-    /*-----------------------------------------------------------*/
-
-    void vPortInitialiseBlocks(void)
-    {
-        /* This just exists to keep the linker quiet. */
-    }
-
-    /*-----------------------------------------------------------*/
-
-    void *pvPortCalloc(size_t xNum, size_t xSize)
-    {
-        return _heap4.Calloc(xNum, xSize);
-    }
-
-    /*-----------------------------------------------------------*/
-
-    void vPortGetHeapStats(HeapStats_t *pxHeapStats)
-    {
-        _heap4.GetHeapStats(pxHeapStats);
-    }
-}
+freertos::Heap4 freertos::_heap4{_buffer, sizeof(_buffer)};
 
 void freertos::Heap4::InsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert)
 {
@@ -471,4 +422,54 @@ void freertos::Heap4::GetHeapStats(xHeapStats *pxHeapStats)
         pxHeapStats->xMinimumEverFreeBytesRemaining = xMinimumEverFreeBytesRemaining;
     }
     taskEXIT_CRITICAL();
+}
+
+extern "C"
+{
+    void *pvPortMalloc(size_t xWantedSize)
+    {
+        return freertos::_heap4.Malloc(xWantedSize);
+    }
+
+    /*-----------------------------------------------------------*/
+
+    void vPortFree(void *pv)
+    {
+        freertos::_heap4.Free(pv);
+    }
+
+    /*-----------------------------------------------------------*/
+
+    size_t xPortGetFreeHeapSize(void)
+    {
+        return freertos::_heap4.xFreeBytesRemaining;
+    }
+
+    /*-----------------------------------------------------------*/
+
+    size_t xPortGetMinimumEverFreeHeapSize(void)
+    {
+        return freertos::_heap4.xMinimumEverFreeBytesRemaining;
+    }
+
+    /*-----------------------------------------------------------*/
+
+    void vPortInitialiseBlocks(void)
+    {
+        /* This just exists to keep the linker quiet. */
+    }
+
+    /*-----------------------------------------------------------*/
+
+    void *pvPortCalloc(size_t xNum, size_t xSize)
+    {
+        return freertos::_heap4.Calloc(xNum, xSize);
+    }
+
+    /*-----------------------------------------------------------*/
+
+    void vPortGetHeapStats(HeapStats_t *pxHeapStats)
+    {
+        freertos::_heap4.GetHeapStats(pxHeapStats);
+    }
 }
