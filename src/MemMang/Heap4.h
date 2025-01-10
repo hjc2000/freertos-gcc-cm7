@@ -67,6 +67,9 @@ namespace freertos
 
 #pragma endregion
 
+        uint8_t *_buffer{};
+        size_t _size{};
+
         /// @brief 将被释放的内存插入链表。
         /// @note 如果发现与链表中要插入位置的前一个节点和后一个节点指向的内存是连续的，会合并这些节点。
         /// @param pxBlockToInsert
@@ -93,6 +96,14 @@ namespace freertos
         virtual void Free(void *pv) override;
         void *Calloc(size_t xNum, size_t xSize);
         void GetHeapStats(xHeapStats *pxHeapStats);
+
+        virtual uint8_t *begin() override;
+        virtual uint8_t *end() override;
+
+        /// @brief 剩余的自由空间。单位：字节。
+        /// @note 不一定是一整块连续的，有可能是碎片化的。
+        /// @return
+        virtual size_t RemainingFreeSize() const override;
     };
 
     /// @brief 全局的 freertos::Heap4 对象。

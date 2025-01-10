@@ -111,6 +111,9 @@ void freertos::Heap4::InsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToIn
 
 freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 {
+    _buffer = buffer;
+    _size = size;
+
     BlockLink_t *pxFirstFreeBlock;
     uint8_t *pucAlignedHeap;
     portPOINTER_SIZE_TYPE uxAddress;
@@ -422,4 +425,19 @@ void freertos::Heap4::GetHeapStats(xHeapStats *pxHeapStats)
         pxHeapStats->xMinimumEverFreeBytesRemaining = xMinimumEverFreeBytesRemaining;
     }
     taskEXIT_CRITICAL();
+}
+
+uint8_t *freertos::Heap4::begin()
+{
+    return _buffer;
+}
+
+uint8_t *freertos::Heap4::end()
+{
+    return _buffer + _size;
+}
+
+size_t freertos::Heap4::RemainingFreeSize() const
+{
+    return xFreeBytesRemaining;
 }
