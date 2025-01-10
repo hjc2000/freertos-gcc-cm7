@@ -92,12 +92,24 @@ namespace freertos
         size_t xNumberOfSuccessfulAllocations = 0;
         size_t xNumberOfSuccessfulFrees = 0;
 
+        /// @brief 分配内存。
+        /// @param size 要分配的内存块大小。单位：字节。
+        /// @return
         virtual void *Malloc(size_t xWantedSize) override;
+
+        /// @brief 要释放的由 Malloc 方法分配的内存块。
+        /// @param p Malloc 方法返回的指针。
         virtual void Free(void *pv) override;
+
         void *Calloc(size_t xNum, size_t xSize);
         void GetHeapStats(xHeapStats *pxHeapStats);
 
+        /// @brief 堆的起点。
+        /// @return
         virtual uint8_t *begin() override;
+
+        /// @brief 堆的最后一个字节再 +1.
+        /// @return
         virtual uint8_t *end() override;
 
         /// @brief 剩余的自由空间。单位：字节。
