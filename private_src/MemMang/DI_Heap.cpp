@@ -31,12 +31,12 @@ namespace
 
 /// @brief 获取主堆。
 /// @return
-bsp::IHeap &DI_Heap()
+bsp::IHeap &bsp::di::heap::Heap()
 {
     return _heap4;
 }
 
-std::shared_ptr<bsp::IHeap> DI_CreateHeap(uint8_t *buffer, size_t size)
+std::shared_ptr<bsp::IHeap> bsp::di::heap::CreateHeap(uint8_t *buffer, size_t size)
 {
     return std::shared_ptr<bsp::IHeap>{new freertos::Heap4{buffer, size}};
 }
