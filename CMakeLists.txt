@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.8)
 
 if(1)
-	set(ProjectName freertos)
+	get_filename_component(CURRENT_DIR_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+	set(ProjectName "${CURRENT_DIR_NAME}")
 
 	include($ENV{cpp_lib_build_scripts_path}/cmake-module/setup.cmake)
 
