@@ -39,14 +39,14 @@ PREINIT(Heap4)
 
 /// @brief 获取主堆。
 /// @return
-bsp::IHeap &bsp::di::heap::Heap()
+base::heap::IHeap &bsp::di::heap::Heap()
 {
 	return Heap4();
 }
 
-std::shared_ptr<bsp::IHeap> bsp::di::heap::CreateHeap(uint8_t *buffer, size_t size)
+std::shared_ptr<base::heap::IHeap> bsp::di::heap::CreateHeap(uint8_t *buffer, size_t size)
 {
-	return std::shared_ptr<bsp::IHeap>{new freertos::Heap4{buffer, size}};
+	return std::shared_ptr<base::heap::IHeap>{new freertos::Heap4{buffer, size}};
 }
 
 /**
