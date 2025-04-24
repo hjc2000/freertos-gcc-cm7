@@ -1,6 +1,7 @@
 #include "base/define.h"
+#include "base/peripheral/heap/heap.h"
+#include "base/peripheral/heap/IHeap.h"
 #include "Heap4.h"
-#include <bsp-interface/di/heap.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -39,12 +40,12 @@ PREINIT(Heap4)
 
 /// @brief 获取主堆。
 /// @return
-base::heap::IHeap &bsp::di::heap::Heap()
+base::heap::IHeap &base::heap::Heap()
 {
 	return Heap4();
 }
 
-std::shared_ptr<base::heap::IHeap> bsp::di::heap::CreateHeap(uint8_t *buffer, size_t size)
+std::shared_ptr<base::heap::IHeap> base::heap::CreateHeap(uint8_t *buffer, size_t size)
 {
 	return std::shared_ptr<base::heap::IHeap>{new freertos::Heap4{buffer, size}};
 }
