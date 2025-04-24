@@ -22,13 +22,6 @@
 	#error This file must not be used if configSUPPORT_DYNAMIC_ALLOCATION is 0
 #endif
 
-/**
- * 释放内存时是否将这段内存的每个字节都设成 0.
- */
-#ifndef configHEAP_CLEAR_MEMORY_ON_FREE
-	#define configHEAP_CLEAR_MEMORY_ON_FREE 0
-#endif
-
 namespace
 {
 	/* The size of the structure placed at the beginning of each allocated memory
@@ -327,11 +320,6 @@ void freertos::Heap4::Free(void *pv)
 				/* The block is being returned to the heap - it is no longer
 				 * allocated. */
 				HeapFreeBlock(pxLink);
-#if (configHEAP_CLEAR_MEMORY_ON_FREE == 1)
-				{
-					(void)memset(puc + _size_of_heap_block_linklist_element, 0, pxLink->_size - _size_of_heap_block_linklist_element);
-				}
-#endif
 
 				vTaskSuspendAll();
 				{
@@ -423,12 +411,12 @@ void freertos::Heap4::GetHeapStats(xHeapStats *pxHeapStats)
 	taskEXIT_CRITICAL();
 }
 
-uint8_t *freertos::Heap4::begin() const
+uint8_t const *freertos::Heap4::begin() const
 {
 	return _buffer;
 }
 
-uint8_t *freertos::Heap4::end() const
+uint8_t const *freertos::Heap4::end() const
 {
 	return _buffer + _size;
 }

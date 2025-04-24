@@ -106,11 +106,11 @@ namespace freertos
 
 		/// @brief 堆的起点。
 		/// @return
-		virtual uint8_t *begin() const override;
+		virtual uint8_t const *begin() const override;
 
 		/// @brief 堆的最后一个字节再 +1.
 		/// @return
-		virtual uint8_t *end() const override;
+		virtual uint8_t const *end() const override;
 
 		/// @brief 剩余的自由空间。单位：字节。
 		/// @note 不一定是一整块连续的，有可能是碎片化的。
