@@ -1,6 +1,6 @@
 #include "base/define.h"
-#include "base/peripheral/heap/heap.h"
-#include "base/peripheral/heap/IHeap.h"
+#include "base/embedded/heap/heap.h"
+#include "base/embedded/heap/IHeap.h"
 #include "Heap4.h"
 #include <stdlib.h>
 #include <string.h>

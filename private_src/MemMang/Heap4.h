@@ -1,5 +1,5 @@
 #pragma once
-#include "base/peripheral/heap/IHeap.h"
+#include "base/embedded/heap/IHeap.h"
 
 struct xHeapStats;
 
