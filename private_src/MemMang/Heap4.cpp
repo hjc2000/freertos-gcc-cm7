@@ -87,7 +87,7 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 
 	/* _tail_element is used to mark the end of the list of free blocks and is inserted
 	 * at the end of the heap space. */
-	uint8_t *tail_addr = base::bit::AlignDown(_buffer + _size - sizeof(base::heap::MemoryBlockLinkListNode));
+	uint8_t *tail_addr = base::bit::AlignDown(_buffer + _size - base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>());
 	_tail_element = reinterpret_cast<base::heap::MemoryBlockLinkListNode *>(tail_addr);
 	_tail_element->_next_free_block = nullptr;
 	_tail_element->_size = 0;
