@@ -4,6 +4,7 @@
 #include "base/embedded/heap/IHeap.h"
 #include "base/embedded/heap/MemoryBlockLinkListNode.h"
 #include <cstddef>
+#include <cstdint>
 
 struct xHeapStats;
 
@@ -15,45 +16,37 @@ namespace freertos
 	{
 	private:
 #pragma region constexpr
-		/* Max value that fits in a size_t type. */
-		static size_t constexpr _heap_size_max = ~((size_t)0);
 
 		/* Check if multiplying a and b will result in overflow. */
 		bool constexpr HeapMultiplyWillOverflow(size_t a, size_t b)
 		{
-			return ((a) > 0) && ((b) > (_heap_size_max / (a)));
+			return ((a) > 0) && ((b) > (SIZE_MAX / (a)));
 		}
 
 		/* Check if adding a and b will result in overflow. */
 		bool constexpr HeapAddWillOverflow(size_t a, size_t b)
 		{
-			return (a) > (_heap_size_max - (b));
+			return (a) > (SIZE_MAX - (b));
 		}
-
-		/* MSB of the _size member of an MemoryBlockLinkListNode structure is used to track
-		 * the allocation status of a block.  When MSB of the _size member of
-		 * an MemoryBlockLinkListNode structure is set then the block belongs to the application.
-		 * When the bit is free the block is still part of the free heap space. */
-		static size_t constexpr _heap_block_allocated_bitmask = static_cast<size_t>(base::bit::Bit((sizeof(size_t) * 8) - 1));
 
 		bool constexpr HeapBlockSizeIsValid(size_t _size)
 		{
-			return ((_size)&_heap_block_allocated_bitmask) == 0;
+			return ((_size)&base::heap::SizeTypeMsbMask()) == 0;
 		}
 
 		bool constexpr HeapBlockIsAllocated(base::heap::MemoryBlockLinkListNode *pxBlock)
 		{
-			return ((pxBlock->_size) & _heap_block_allocated_bitmask) != 0;
+			return ((pxBlock->_size) & base::heap::SizeTypeMsbMask()) != 0;
 		}
 
 		void constexpr HeapAllocateBlock(base::heap::MemoryBlockLinkListNode *pxBlock)
 		{
-			(pxBlock->_size) |= _heap_block_allocated_bitmask;
+			(pxBlock->_size) |= base::heap::SizeTypeMsbMask();
 		}
 
 		void constexpr HeapFreeBlock(base::heap::MemoryBlockLinkListNode *pxBlock)
 		{
-			(pxBlock->_size) &= ~_heap_block_allocated_bitmask;
+			(pxBlock->_size) &= ~base::heap::SizeTypeMsbMask();
 		}
 
 #pragma endregion
