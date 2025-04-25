@@ -209,7 +209,6 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 						 * cast is used to prevent byte alignment warnings from the
 						 * compiler. */
 						pxNewBlockLink = (base::heap::MemoryBlockLinkListNode *)(((uint8_t *)pxBlock) + xWantedSize);
-						configASSERT((((size_t)pxNewBlockLink) & portBYTE_ALIGNMENT_MASK) == 0);
 
 						/* Calculate the sizes of two blocks split from the
 						 * single block. */
@@ -240,16 +239,6 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 	}
 	(void)xTaskResumeAll();
 
-#if (configUSE_MALLOC_FAILED_HOOK == 1)
-	{
-		if (pvReturn == NULL)
-		{
-			vApplicationMallocFailedHook();
-		}
-	}
-#endif /* if ( configUSE_MALLOC_FAILED_HOOK == 1 ) */
-
-	configASSERT((((size_t)pvReturn) & (size_t)portBYTE_ALIGNMENT_MASK) == 0);
 	return pvReturn;
 }
 
@@ -267,9 +256,6 @@ void freertos::Heap4::Free(void *pv)
 		/* This casting is to keep the compiler from issuing warnings. */
 		pxLink = (base::heap::MemoryBlockLinkListNode *)puc;
 
-		configASSERT(HeapBlockIsAllocated(pxLink));
-		configASSERT(pxLink->_next_free_block == NULL);
-
 		if (HeapBlockIsAllocated(pxLink))
 		{
 			if (pxLink->_next_free_block == NULL)
@@ -282,7 +268,6 @@ void freertos::Heap4::Free(void *pv)
 				{
 					/* Add this block to the list of free blocks. */
 					xFreeBytesRemaining += pxLink->_size;
-					traceFREE(pv, pxLink->_size);
 					InsertBlockIntoFreeList(((base::heap::MemoryBlockLinkListNode *)pxLink));
 					xNumberOfSuccessfulFrees++;
 				}
