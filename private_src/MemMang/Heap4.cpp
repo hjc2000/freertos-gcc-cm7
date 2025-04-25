@@ -11,6 +11,7 @@
 #include "base/embedded/heap/MemoryBlockLinkListNode.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include <cstddef>
 #include <stdlib.h>
 #include <string.h>
 
@@ -77,15 +78,10 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 	size_t xTotalHeapSize = size;
 
 	/* Ensure the heap starts on a correctly aligned boundary. */
-	size_t uxAddress = reinterpret_cast<size_t>(buffer);
+	size_t uxAddress = base::bit::AlignUp(reinterpret_cast<size_t>(buffer),
+										  8);
 
-	if ((uxAddress & portBYTE_ALIGNMENT_MASK) != 0)
-	{
-		uxAddress += (portBYTE_ALIGNMENT - 1);
-		uxAddress &= ~((size_t)portBYTE_ALIGNMENT_MASK);
-		xTotalHeapSize -= uxAddress - (size_t)buffer;
-	}
-
+	xTotalHeapSize -= uxAddress - reinterpret_cast<size_t>(buffer);
 	uint8_t *pucAlignedHeap = reinterpret_cast<uint8_t *>(uxAddress);
 
 	/* _head_element is used to hold a pointer to the first item in the list of free
