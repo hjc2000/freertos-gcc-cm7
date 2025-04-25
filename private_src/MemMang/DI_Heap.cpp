@@ -6,13 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/**
- * 释放内存时是否将这段内存的每个字节都设成 0.
- */
-#ifndef configHEAP_CLEAR_MEMORY_ON_FREE
-	#define configHEAP_CLEAR_MEMORY_ON_FREE 0
-#endif
-
 namespace
 {
 	uint8_t _buffer[configTOTAL_HEAP_SIZE];
