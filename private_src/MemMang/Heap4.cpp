@@ -73,9 +73,6 @@ void freertos::Heap4::InsertBlockIntoFreeList(base::heap::MemoryBlockLinkListNod
 
 freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 {
-	_buffer = buffer;
-	_size = size;
-
 	/* Ensure the heap starts on a correctly aligned boundary. */
 	_buffer = base::bit::AlignUp(buffer, 8);
 	_size = size - static_cast<size_t>(_buffer - buffer);
@@ -122,20 +119,16 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 
 		if (xWantedSize > 0)
 		{
-			/* The wanted size must be increased so it can contain a MemoryBlockLinkListNode
-			 * structure in addition to the requested amount of bytes. Some
-			 * additional increment may also be needed for alignment. */
-			size_t xAdditionalRequiredSize = base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() +
-											 portBYTE_ALIGNMENT -
-											 (xWantedSize & portBYTE_ALIGNMENT_MASK);
-
-			if (!base::heap::HeapAddWillOverflow(xWantedSize, xAdditionalRequiredSize))
+			size_t required_size = base::bit::AlignUp(xWantedSize + base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>());
+			if (xWantedSize > required_size)
 			{
-				xWantedSize += xAdditionalRequiredSize;
+				// 加上 base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() 的大小
+				// 并向上对齐后变得比 xWantedSize 小，说明溢出了。
+				xWantedSize = 0;
 			}
 			else
 			{
-				xWantedSize = 0;
+				xWantedSize = required_size;
 			}
 		}
 
