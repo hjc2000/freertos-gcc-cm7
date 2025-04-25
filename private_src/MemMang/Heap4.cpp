@@ -74,12 +74,10 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 	_size = size;
 
 	base::heap::MemoryBlockLinkListNode *pxFirstFreeBlock{};
-	uint8_t *pucAlignedHeap{};
-	size_t uxAddress{};
 	size_t xTotalHeapSize = size;
 
 	/* Ensure the heap starts on a correctly aligned boundary. */
-	uxAddress = (size_t)buffer;
+	size_t uxAddress = reinterpret_cast<size_t>(buffer);
 
 	if ((uxAddress & portBYTE_ALIGNMENT_MASK) != 0)
 	{
@@ -88,7 +86,7 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 		xTotalHeapSize -= uxAddress - (size_t)buffer;
 	}
 
-	pucAlignedHeap = (uint8_t *)uxAddress;
+	uint8_t *pucAlignedHeap = reinterpret_cast<uint8_t *>(uxAddress);
 
 	/* _head_element is used to hold a pointer to the first item in the list of free
 	 * blocks.  The void cast is used to prevent compiler warnings. */
