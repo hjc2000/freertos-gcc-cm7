@@ -12,6 +12,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include <cstddef>
+#include <cstdint>
 #include <stdlib.h>
 #include <string.h>
 
@@ -85,16 +86,15 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 
 	/* _tail_element is used to mark the end of the list of free blocks and is inserted
 	 * at the end of the heap space. */
-	size_t uxAddress = reinterpret_cast<size_t>(_buffer) + _size;
-	uxAddress = base::bit::AlignDown(uxAddress);
-	_tail_element = reinterpret_cast<base::heap::MemoryBlockLinkListNode *>(uxAddress);
+	uint8_t *tail_addr = base::bit::AlignDown(_buffer + _size - sizeof(base::heap::MemoryBlockLinkListNode));
+	_tail_element = reinterpret_cast<base::heap::MemoryBlockLinkListNode *>(tail_addr);
 	_tail_element->_size = 0;
 	_tail_element->_next_free_block = nullptr;
 
 	/* To start with there is a single free block that is sized to take up the
 	 * entire heap space, minus the space taken by _tail_element. */
 	base::heap::MemoryBlockLinkListNode *pxFirstFreeBlock = (base::heap::MemoryBlockLinkListNode *)_buffer;
-	pxFirstFreeBlock->_size = (size_t)(uxAddress - (size_t)pxFirstFreeBlock);
+	pxFirstFreeBlock->_size = static_cast<size_t>(tail_addr - _buffer);
 	pxFirstFreeBlock->_next_free_block = _tail_element;
 
 	/* Only one block exists - and it covers the entire usable heap space. */
