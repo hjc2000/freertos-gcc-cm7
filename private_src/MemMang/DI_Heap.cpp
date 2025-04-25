@@ -10,26 +10,26 @@ namespace
 {
 	uint8_t _buffer[configTOTAL_HEAP_SIZE];
 
-	freertos::Heap4 &Heap4()
+	base::heap::Heap4 &Heap4Instance()
 	{
-		static freertos::Heap4 heap4{_buffer, sizeof(_buffer)};
+		static base::heap::Heap4 heap4{_buffer, sizeof(_buffer)};
 		return heap4;
 	}
 
 } // namespace
 
-PREINIT(Heap4)
+PREINIT(Heap4Instance)
 
 /// @brief 获取主堆。
 /// @return
 base::heap::IHeap &base::heap::Heap()
 {
-	return Heap4();
+	return Heap4Instance();
 }
 
 std::shared_ptr<base::heap::IHeap> base::heap::CreateHeap(uint8_t *buffer, size_t size)
 {
-	return std::shared_ptr<base::heap::IHeap>{new freertos::Heap4{buffer, size}};
+	return std::shared_ptr<base::heap::IHeap>{new base::heap::Heap4{buffer, size}};
 }
 
 /**
