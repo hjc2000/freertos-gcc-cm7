@@ -4,8 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 
-struct xHeapStats;
-
 namespace freertos
 {
 	/// @brief 基于 freertos 的 heap4 的堆管理器。
