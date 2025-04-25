@@ -26,7 +26,7 @@ namespace
 {
 	/* The size of the structure placed at the beginning of each allocated memory
 	 * block must by correctly byte aligned. */
-	size_t constexpr _size_of_heap_block_linklist_element = (sizeof(freertos::MemoryBlockLinkListNode) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
+	size_t constexpr _size_of_heap_block_linklist_element = (sizeof(base::heap::MemoryBlockLinkListNode) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
 
 	/// @brief 堆块的最小大小。
 	/// @note 将 _size_of_heap_block_linklist_element 左移 1 位，即乘 2，说明最小大小定为
@@ -36,9 +36,9 @@ namespace
 
 } // namespace
 
-void freertos::Heap4::InsertBlockIntoFreeList(freertos::MemoryBlockLinkListNode *pxBlockToInsert)
+void freertos::Heap4::InsertBlockIntoFreeList(base::heap::MemoryBlockLinkListNode *pxBlockToInsert)
 {
-	freertos::MemoryBlockLinkListNode *pxIterator;
+	base::heap::MemoryBlockLinkListNode *pxIterator;
 	uint8_t *puc;
 
 	/* Iterate through the list until a block is found that has a higher address
@@ -103,7 +103,7 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 	_buffer = buffer;
 	_size = size;
 
-	MemoryBlockLinkListNode *pxFirstFreeBlock;
+	base::heap::MemoryBlockLinkListNode *pxFirstFreeBlock;
 	uint8_t *pucAlignedHeap;
 	portPOINTER_SIZE_TYPE uxAddress;
 	size_t xTotalHeapSize = size;
@@ -122,7 +122,7 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 
 	/* _head_element is used to hold a pointer to the first item in the list of free
 	 * blocks.  The void cast is used to prevent compiler warnings. */
-	_head_element._next_free_block = (MemoryBlockLinkListNode *)pucAlignedHeap;
+	_head_element._next_free_block = (base::heap::MemoryBlockLinkListNode *)pucAlignedHeap;
 	_head_element._size = (size_t)0;
 
 	/* _tail_element is used to mark the end of the list of free blocks and is inserted
@@ -130,13 +130,13 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 	uxAddress = ((portPOINTER_SIZE_TYPE)pucAlignedHeap) + xTotalHeapSize;
 	uxAddress -= _size_of_heap_block_linklist_element;
 	uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
-	_tail_element = (MemoryBlockLinkListNode *)uxAddress;
+	_tail_element = (base::heap::MemoryBlockLinkListNode *)uxAddress;
 	_tail_element->_size = 0;
 	_tail_element->_next_free_block = NULL;
 
 	/* To start with there is a single free block that is sized to take up the
 	 * entire heap space, minus the space taken by _tail_element. */
-	pxFirstFreeBlock = (MemoryBlockLinkListNode *)pucAlignedHeap;
+	pxFirstFreeBlock = (base::heap::MemoryBlockLinkListNode *)pucAlignedHeap;
 	pxFirstFreeBlock->_size = (size_t)(uxAddress - (portPOINTER_SIZE_TYPE)pxFirstFreeBlock);
 	pxFirstFreeBlock->_next_free_block = _tail_element;
 
@@ -147,9 +147,9 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 
 void *freertos::Heap4::Malloc(size_t xWantedSize)
 {
-	freertos::MemoryBlockLinkListNode *pxBlock;
-	freertos::MemoryBlockLinkListNode *pxPreviousBlock;
-	freertos::MemoryBlockLinkListNode *pxNewBlockLink;
+	base::heap::MemoryBlockLinkListNode *pxBlock;
+	base::heap::MemoryBlockLinkListNode *pxPreviousBlock;
+	base::heap::MemoryBlockLinkListNode *pxNewBlockLink;
 	void *pvReturn = NULL;
 	size_t xAdditionalRequiredSize;
 
@@ -227,7 +227,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 						 * block following the number of bytes requested. The void
 						 * cast is used to prevent byte alignment warnings from the
 						 * compiler. */
-						pxNewBlockLink = (freertos::MemoryBlockLinkListNode *)(((uint8_t *)pxBlock) + xWantedSize);
+						pxNewBlockLink = (base::heap::MemoryBlockLinkListNode *)(((uint8_t *)pxBlock) + xWantedSize);
 						configASSERT((((size_t)pxNewBlockLink) & portBYTE_ALIGNMENT_MASK) == 0);
 
 						/* Calculate the sizes of two blocks split from the
@@ -299,7 +299,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 void freertos::Heap4::Free(void *pv)
 {
 	uint8_t *puc = (uint8_t *)pv;
-	freertos::MemoryBlockLinkListNode *pxLink;
+	base::heap::MemoryBlockLinkListNode *pxLink;
 
 	if (pv != NULL)
 	{
@@ -308,7 +308,7 @@ void freertos::Heap4::Free(void *pv)
 		puc -= _size_of_heap_block_linklist_element;
 
 		/* This casting is to keep the compiler from issuing warnings. */
-		pxLink = (freertos::MemoryBlockLinkListNode *)puc;
+		pxLink = (base::heap::MemoryBlockLinkListNode *)puc;
 
 		configASSERT(HeapBlockIsAllocated(pxLink));
 		configASSERT(pxLink->_next_free_block == NULL);
@@ -326,7 +326,7 @@ void freertos::Heap4::Free(void *pv)
 					/* Add this block to the list of free blocks. */
 					xFreeBytesRemaining += pxLink->_size;
 					traceFREE(pv, pxLink->_size);
-					InsertBlockIntoFreeList(((freertos::MemoryBlockLinkListNode *)pxLink));
+					InsertBlockIntoFreeList(((base::heap::MemoryBlockLinkListNode *)pxLink));
 					xNumberOfSuccessfulFrees++;
 				}
 				(void)xTaskResumeAll();
