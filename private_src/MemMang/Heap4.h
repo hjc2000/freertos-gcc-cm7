@@ -1,5 +1,4 @@
 #pragma once
-#include "base/embedded/heap/FreeRtosHeap4.h"
 #include "base/embedded/heap/IHeap.h"
 #include "base/embedded/heap/MemoryBlockLinkListNode.h"
 #include <cstddef>
@@ -17,6 +16,17 @@ namespace freertos
 		uint8_t *_buffer{};
 		size_t _size{};
 
+		/* Create a couple of list links to mark the start and end of the list. */
+		base::heap::MemoryBlockLinkListNode _head_element{};
+		base::heap::MemoryBlockLinkListNode *_tail_element = nullptr;
+
+		/* Keeps track of the number of calls to allocate and free memory as well as the
+		 * number of free bytes remaining, but says nothing about fragmentation. */
+		size_t xFreeBytesRemaining = 0U;
+		size_t xMinimumEverFreeBytesRemaining = 0U;
+		size_t xNumberOfSuccessfulAllocations = 0;
+		size_t xNumberOfSuccessfulFrees = 0;
+
 		/// @brief 将被释放的内存插入链表。
 		/// @note 如果发现与链表中要插入位置的前一个节点和后一个节点指向的内存是连续的，会合并这些节点。
 		/// @param pxBlockToInsert
@@ -27,17 +37,6 @@ namespace freertos
 		/// @param buffer 要被作为堆的缓冲区。
 		/// @param size 缓冲区大小。
 		Heap4(uint8_t *buffer, size_t size);
-
-		/* Create a couple of list links to mark the start and end of the list. */
-		base::heap::MemoryBlockLinkListNode _head_element;
-		base::heap::MemoryBlockLinkListNode *_tail_element = nullptr;
-
-		/* Keeps track of the number of calls to allocate and free memory as well as the
-		 * number of free bytes remaining, but says nothing about fragmentation. */
-		size_t xFreeBytesRemaining = 0U;
-		size_t xMinimumEverFreeBytesRemaining = 0U;
-		size_t xNumberOfSuccessfulAllocations = 0;
-		size_t xNumberOfSuccessfulFrees = 0;
 
 		/// @brief 分配内存。
 		/// @param size 要分配的内存块大小。单位：字节。

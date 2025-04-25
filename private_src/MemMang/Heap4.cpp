@@ -76,7 +76,7 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 
 	/* Ensure the heap starts on a correctly aligned boundary. */
 	_buffer = base::bit::AlignUp(buffer, 8);
-	size_t xTotalHeapSize = size - static_cast<size_t>(_buffer - buffer);
+	_size = size - static_cast<size_t>(_buffer - buffer);
 
 	/* _head_element is used to hold a pointer to the first item in the list of free
 	 * blocks.  The void cast is used to prevent compiler warnings. */
@@ -85,10 +85,9 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 
 	/* _tail_element is used to mark the end of the list of free blocks and is inserted
 	 * at the end of the heap space. */
-	size_t uxAddress = ((size_t)_buffer) + xTotalHeapSize;
-	uxAddress -= base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>();
-	uxAddress &= ~((size_t)portBYTE_ALIGNMENT_MASK);
-	_tail_element = (base::heap::MemoryBlockLinkListNode *)uxAddress;
+	size_t uxAddress = reinterpret_cast<size_t>(_buffer) + _size;
+	uxAddress = base::bit::AlignDown(uxAddress);
+	_tail_element = reinterpret_cast<base::heap::MemoryBlockLinkListNode *>(uxAddress);
 	_tail_element->_size = 0;
 	_tail_element->_next_free_block = nullptr;
 
