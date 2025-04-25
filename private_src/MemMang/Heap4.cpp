@@ -100,7 +100,7 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 	uxAddress &= ~((size_t)portBYTE_ALIGNMENT_MASK);
 	_tail_element = (base::heap::MemoryBlockLinkListNode *)uxAddress;
 	_tail_element->_size = 0;
-	_tail_element->_next_free_block = NULL;
+	_tail_element->_next_free_block = nullptr;
 
 	/* To start with there is a single free block that is sized to take up the
 	 * entire heap space, minus the space taken by _tail_element. */
@@ -118,14 +118,14 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 	base::heap::MemoryBlockLinkListNode *pxBlock;
 	base::heap::MemoryBlockLinkListNode *pxPreviousBlock;
 	base::heap::MemoryBlockLinkListNode *pxNewBlockLink;
-	void *pvReturn = NULL;
+	void *pvReturn = nullptr;
 	size_t xAdditionalRequiredSize;
 
 	vTaskSuspendAll();
 	{
 		/* If this is the first call to malloc then the heap will require
 		 * initialisation to setup the list of free blocks. */
-		if (_tail_element == NULL)
+		if (_tail_element == nullptr)
 		{
 			// 已被构造函数取代。
 			//  prvHeapInit();
@@ -161,7 +161,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 				pxPreviousBlock = &_head_element;
 				pxBlock = _head_element._next_free_block;
 
-				while ((pxBlock->_size < xWantedSize) && (pxBlock->_next_free_block != NULL))
+				while ((pxBlock->_size < xWantedSize) && (pxBlock->_next_free_block != nullptr))
 				{
 					pxPreviousBlock = pxBlock;
 					pxBlock = pxBlock->_next_free_block;
@@ -208,7 +208,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 					/* The block is being returned - it is allocated and owned
 					 * by the application and has no "next" block. */
 					HeapAllocateBlock(pxBlock);
-					pxBlock->_next_free_block = NULL;
+					pxBlock->_next_free_block = nullptr;
 					xNumberOfSuccessfulAllocations++;
 				}
 			}
@@ -226,7 +226,7 @@ void freertos::Heap4::Free(void *pv)
 	uint8_t *puc = (uint8_t *)pv;
 	base::heap::MemoryBlockLinkListNode *pxLink;
 
-	if (pv != NULL)
+	if (pv != nullptr)
 	{
 		/* The memory being freed will have an MemoryBlockLinkListNode structure immediately
 		 * before it. */
@@ -237,7 +237,7 @@ void freertos::Heap4::Free(void *pv)
 
 		if (HeapBlockIsAllocated(pxLink))
 		{
-			if (pxLink->_next_free_block == NULL)
+			if (pxLink->_next_free_block == nullptr)
 			{
 				/* The block is being returned to the heap - it is no longer
 				 * allocated. */
