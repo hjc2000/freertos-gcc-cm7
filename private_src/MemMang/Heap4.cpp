@@ -202,8 +202,6 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 				}
 			}
 		}
-
-		traceMALLOC(pvReturn, xWantedSize);
 	}
 	(void)xTaskResumeAll();
 
