@@ -343,23 +343,6 @@ void freertos::Heap4::Free(void *pv)
 	}
 }
 
-void *freertos::Heap4::Calloc(size_t xNum, size_t xSize)
-{
-	void *pv = NULL;
-
-	if (!HeapMultiplyWillOverflow(xNum, xSize))
-	{
-		pv = pvPortMalloc(xNum * xSize);
-
-		if (pv != NULL)
-		{
-			(void)memset(pv, 0, xNum * xSize);
-		}
-	}
-
-	return pv;
-}
-
 uint8_t const *freertos::Heap4::begin() const
 {
 	return _buffer;

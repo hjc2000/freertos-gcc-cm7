@@ -101,8 +101,6 @@ namespace freertos
 		/// @param p Malloc 方法返回的指针。
 		virtual void Free(void *pv) override;
 
-		void *Calloc(size_t xNum, size_t xSize);
-
 		/// @brief 堆的起点。
 		/// @return
 		virtual uint8_t const *begin() const override;

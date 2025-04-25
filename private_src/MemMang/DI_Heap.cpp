@@ -87,13 +87,4 @@ extern "C"
 	{
 		/* This just exists to keep the linker quiet. */
 	}
-
-	/*-----------------------------------------------------------*/
-
-	void *pvPortCalloc(size_t xNum, size_t xSize)
-	{
-		return Heap4().Calloc(xNum, xSize);
-	}
-
-	/*-----------------------------------------------------------*/
 }
