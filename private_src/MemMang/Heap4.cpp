@@ -8,20 +8,11 @@
  */
 #include "Heap4.h"
 #include "base/bit/bit.h"
+#include "base/embedded/heap/MemoryBlockLinkListNode.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include <stdlib.h>
 #include <string.h>
-
-namespace
-{
-	/// @brief 堆块的最小大小。
-	/// @note 将 base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() 左移 1 位，即乘 2，说明最小大小定为
-	/// base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() 的 2 倍。这可能是因为如果块太小了，链表的空间利用率
-	/// 很低，链表节点本身占用的内存都比指向的内存块大了，那这块内存就不值得用一个链表节点去指向它。
-	size_t constexpr _heap_minimum_block_size = ((size_t)(base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() << 1));
-
-} // namespace
 
 void freertos::Heap4::InsertBlockIntoFreeList(base::heap::MemoryBlockLinkListNode *pxBlockToInsert)
 {
@@ -192,7 +183,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 
 					/* If the block is larger than required it can be split into
 					 * two. */
-					if ((pxBlock->_size - xWantedSize) > _heap_minimum_block_size)
+					if ((pxBlock->_size - xWantedSize) > base::heap::MinimumBlockSize())
 					{
 						/* This block is to be split into two.  Create a new
 						 * block following the number of bytes requested. The void
