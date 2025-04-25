@@ -96,9 +96,4 @@ extern "C"
 	}
 
 	/*-----------------------------------------------------------*/
-
-	void vPortGetHeapStats(HeapStats_t *pxHeapStats)
-	{
-		Heap4().GetHeapStats(pxHeapStats);
-	}
 }

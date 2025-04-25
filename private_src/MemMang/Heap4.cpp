@@ -360,57 +360,6 @@ void *freertos::Heap4::Calloc(size_t xNum, size_t xSize)
 	return pv;
 }
 
-void freertos::Heap4::GetHeapStats(xHeapStats *pxHeapStats)
-{
-	freertos::BlockLink_t *pxBlock;
-	size_t xBlocks = 0, xMaxSize = 0, xMinSize = portMAX_DELAY; /* portMAX_DELAY used as a portable way of getting the maximum value. */
-
-	vTaskSuspendAll();
-	{
-		pxBlock = _head_element._next_free_block;
-
-		/* pxBlock will be NULL if the heap has not been initialised.  The heap
-		 * is initialised automatically when the first allocation is made. */
-		if (pxBlock != NULL)
-		{
-			while (pxBlock != _tail_element)
-			{
-				/* Increment the number of blocks and record the largest block seen
-				 * so far. */
-				xBlocks++;
-
-				if (pxBlock->_size > xMaxSize)
-				{
-					xMaxSize = pxBlock->_size;
-				}
-
-				if (pxBlock->_size < xMinSize)
-				{
-					xMinSize = pxBlock->_size;
-				}
-
-				/* Move to the next block in the chain until the last block is
-				 * reached. */
-				pxBlock = pxBlock->_next_free_block;
-			}
-		}
-	}
-	(void)xTaskResumeAll();
-
-	pxHeapStats->xSizeOfLargestFreeBlockInBytes = xMaxSize;
-	pxHeapStats->xSizeOfSmallestFreeBlockInBytes = xMinSize;
-	pxHeapStats->xNumberOfFreeBlocks = xBlocks;
-
-	taskENTER_CRITICAL();
-	{
-		pxHeapStats->xAvailableHeapSpaceInBytes = xFreeBytesRemaining;
-		pxHeapStats->xNumberOfSuccessfulAllocations = xNumberOfSuccessfulAllocations;
-		pxHeapStats->xNumberOfSuccessfulFrees = xNumberOfSuccessfulFrees;
-		pxHeapStats->xMinimumEverFreeBytesRemaining = xMinimumEverFreeBytesRemaining;
-	}
-	taskEXIT_CRITICAL();
-}
-
 uint8_t const *freertos::Heap4::begin() const
 {
 	return _buffer;

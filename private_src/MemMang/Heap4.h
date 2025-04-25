@@ -102,7 +102,6 @@ namespace freertos
 		virtual void Free(void *pv) override;
 
 		void *Calloc(size_t xNum, size_t xSize);
-		void GetHeapStats(xHeapStats *pxHeapStats);
 
 		/// @brief 堆的起点。
 		/// @return
