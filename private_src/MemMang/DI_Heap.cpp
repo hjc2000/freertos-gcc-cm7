@@ -57,14 +57,14 @@ extern "C"
 {
 	void *pvPortMalloc(size_t xWantedSize)
 	{
-		return Heap4().Malloc(xWantedSize);
+		return base::heap::Malloc(xWantedSize);
 	}
 
 	/*-----------------------------------------------------------*/
 
 	void vPortFree(void *pv)
 	{
-		Heap4().Free(pv);
+		base::heap::Free(pv);
 	}
 
 	/*-----------------------------------------------------------*/
