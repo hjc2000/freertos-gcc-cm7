@@ -10,8 +10,6 @@
 #include "base/bit/bit.h"
 #include "base/embedded/heap/MemoryBlockLinkListNode.h"
 #include "base/task/task.h"
-#include "FreeRTOS.h"
-#include "task.h"
 #include <cstddef>
 #include <cstdint>
 #include <stdlib.h>
@@ -107,8 +105,9 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 	base::heap::MemoryBlockLinkListNode *pxNewBlockLink;
 	void *pvReturn = nullptr;
 
-	vTaskSuspendAll();
 	{
+		base::task::TaskSchedulerSuspendGuard g{};
+
 		/* If this is the first call to malloc then the heap will require
 		 * initialisation to setup the list of free blocks. */
 		if (_tail_element == nullptr)
@@ -198,7 +197,6 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 			}
 		}
 	}
-	(void)xTaskResumeAll();
 
 	return pvReturn;
 }
@@ -225,14 +223,14 @@ void freertos::Heap4::Free(void *pv)
 				 * allocated. */
 				HeapFreeBlock(pxLink);
 
-				vTaskSuspendAll();
 				{
+					base::task::TaskSchedulerSuspendGuard g{};
+
 					/* Add this block to the list of free blocks. */
 					xFreeBytesRemaining += pxLink->_size;
 					InsertBlockIntoFreeList(((base::heap::MemoryBlockLinkListNode *)pxLink));
 					xNumberOfSuccessfulFrees++;
 				}
-				(void)xTaskResumeAll();
 			}
 		}
 	}
