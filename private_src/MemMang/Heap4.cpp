@@ -174,7 +174,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 			 * additional increment may also be needed for alignment. */
 			xAdditionalRequiredSize = _size_of_heap_block_linklist_element + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
 
-			if (!HeapAddWillOverflow(xWantedSize, xAdditionalRequiredSize))
+			if (!base::heap::HeapAddWillOverflow(xWantedSize, xAdditionalRequiredSize))
 			{
 				xWantedSize += xAdditionalRequiredSize;
 			}
@@ -192,7 +192,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 		 * top bit is set.  The top bit of the block size member of the MemoryBlockLinkListNode
 		 * structure is used to determine who owns the block - the application or
 		 * the kernel, so it must be free. */
-		if (HeapBlockSizeIsValid(xWantedSize))
+		if (base::heap::HeapBlockSizeIsValid(xWantedSize))
 		{
 			if ((xWantedSize > 0) && (xWantedSize <= xFreeBytesRemaining))
 			{

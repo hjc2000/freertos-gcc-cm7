@@ -1,5 +1,4 @@
 #pragma once
-#include "base/bit/bit.h"
 #include "base/embedded/heap/FreeRtosHeap4.h"
 #include "base/embedded/heap/IHeap.h"
 #include "base/embedded/heap/MemoryBlockLinkListNode.h"
@@ -15,42 +14,6 @@ namespace freertos
 		public base::heap::IHeap
 	{
 	private:
-#pragma region constexpr
-
-		/* Check if multiplying a and b will result in overflow. */
-		constexpr bool HeapMultiplyWillOverflow(size_t a, size_t b)
-		{
-			return ((a) > 0) && ((b) > (SIZE_MAX / (a)));
-		}
-
-		/* Check if adding a and b will result in overflow. */
-		constexpr bool HeapAddWillOverflow(size_t a, size_t b)
-		{
-			return (a) > (SIZE_MAX - (b));
-		}
-
-		constexpr bool HeapBlockSizeIsValid(size_t _size)
-		{
-			return (_size & base::bit::MSB<size_t>()) == 0;
-		}
-
-		constexpr bool HeapBlockIsAllocated(base::heap::MemoryBlockLinkListNode *pxBlock)
-		{
-			return ((pxBlock->_size) & base::bit::MSB<size_t>()) != 0;
-		}
-
-		constexpr void HeapAllocateBlock(base::heap::MemoryBlockLinkListNode *pxBlock)
-		{
-			(pxBlock->_size) |= base::bit::MSB<size_t>();
-		}
-
-		constexpr void HeapFreeBlock(base::heap::MemoryBlockLinkListNode *pxBlock)
-		{
-			(pxBlock->_size) &= ~base::bit::MSB<size_t>();
-		}
-
-#pragma endregion
-
 		uint8_t *_buffer{};
 		size_t _size{};
 
