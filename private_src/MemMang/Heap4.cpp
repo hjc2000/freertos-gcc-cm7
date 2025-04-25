@@ -94,17 +94,17 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 
 	base::heap::MemoryBlockLinkListNode *pxFirstFreeBlock{};
 	uint8_t *pucAlignedHeap{};
-	portPOINTER_SIZE_TYPE uxAddress{};
+	size_t uxAddress{};
 	size_t xTotalHeapSize = size;
 
 	/* Ensure the heap starts on a correctly aligned boundary. */
-	uxAddress = (portPOINTER_SIZE_TYPE)buffer;
+	uxAddress = (size_t)buffer;
 
 	if ((uxAddress & portBYTE_ALIGNMENT_MASK) != 0)
 	{
 		uxAddress += (portBYTE_ALIGNMENT - 1);
-		uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
-		xTotalHeapSize -= uxAddress - (portPOINTER_SIZE_TYPE)buffer;
+		uxAddress &= ~((size_t)portBYTE_ALIGNMENT_MASK);
+		xTotalHeapSize -= uxAddress - (size_t)buffer;
 	}
 
 	pucAlignedHeap = (uint8_t *)uxAddress;
@@ -116,9 +116,9 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 
 	/* _tail_element is used to mark the end of the list of free blocks and is inserted
 	 * at the end of the heap space. */
-	uxAddress = ((portPOINTER_SIZE_TYPE)pucAlignedHeap) + xTotalHeapSize;
+	uxAddress = ((size_t)pucAlignedHeap) + xTotalHeapSize;
 	uxAddress -= base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>();
-	uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
+	uxAddress &= ~((size_t)portBYTE_ALIGNMENT_MASK);
 	_tail_element = (base::heap::MemoryBlockLinkListNode *)uxAddress;
 	_tail_element->_size = 0;
 	_tail_element->_next_free_block = NULL;
@@ -126,7 +126,7 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 	/* To start with there is a single free block that is sized to take up the
 	 * entire heap space, minus the space taken by _tail_element. */
 	pxFirstFreeBlock = (base::heap::MemoryBlockLinkListNode *)pucAlignedHeap;
-	pxFirstFreeBlock->_size = (size_t)(uxAddress - (portPOINTER_SIZE_TYPE)pxFirstFreeBlock);
+	pxFirstFreeBlock->_size = (size_t)(uxAddress - (size_t)pxFirstFreeBlock);
 	pxFirstFreeBlock->_next_free_block = _tail_element;
 
 	/* Only one block exists - and it covers the entire usable heap space. */
