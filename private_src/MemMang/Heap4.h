@@ -6,10 +6,10 @@ struct xHeapStats;
 namespace freertos
 {
 	/// @brief 空闲内存块链表节点。
-	struct BlockLink_t
+	struct MemoryBlockLinkListNode
 	{
 		/// @brief 下一个空闲内存块。
-		BlockLink_t *_next_free_block{};
+		MemoryBlockLinkListNode *_next_free_block{};
 
 		/// @brief 空闲内存块大小。
 		size_t _size{};
@@ -39,9 +39,9 @@ namespace freertos
 			return (a) > (_heap_size_max - (b));
 		}
 
-		/* MSB of the _size member of an BlockLink_t structure is used to track
+		/* MSB of the _size member of an MemoryBlockLinkListNode structure is used to track
 		 * the allocation status of a block.  When MSB of the _size member of
-		 * an BlockLink_t structure is set then the block belongs to the application.
+		 * an MemoryBlockLinkListNode structure is set then the block belongs to the application.
 		 * When the bit is free the block is still part of the free heap space. */
 		static size_t constexpr _heap_block_allocated_bitmask = ((size_t)1) << ((sizeof(size_t) * _bit_count_per_byte) - 1);
 
@@ -50,17 +50,17 @@ namespace freertos
 			return ((_size)&_heap_block_allocated_bitmask) == 0;
 		}
 
-		bool constexpr HeapBlockIsAllocated(freertos::BlockLink_t *pxBlock)
+		bool constexpr HeapBlockIsAllocated(freertos::MemoryBlockLinkListNode *pxBlock)
 		{
 			return ((pxBlock->_size) & _heap_block_allocated_bitmask) != 0;
 		}
 
-		void constexpr HeapAllocateBlock(freertos::BlockLink_t *pxBlock)
+		void constexpr HeapAllocateBlock(freertos::MemoryBlockLinkListNode *pxBlock)
 		{
 			(pxBlock->_size) |= _heap_block_allocated_bitmask;
 		}
 
-		void constexpr HeapFreeBlock(freertos::BlockLink_t *pxBlock)
+		void constexpr HeapFreeBlock(freertos::MemoryBlockLinkListNode *pxBlock)
 		{
 			(pxBlock->_size) &= ~_heap_block_allocated_bitmask;
 		}
@@ -73,7 +73,7 @@ namespace freertos
 		/// @brief 将被释放的内存插入链表。
 		/// @note 如果发现与链表中要插入位置的前一个节点和后一个节点指向的内存是连续的，会合并这些节点。
 		/// @param pxBlockToInsert
-		void InsertBlockIntoFreeList(freertos::BlockLink_t *pxBlockToInsert);
+		void InsertBlockIntoFreeList(freertos::MemoryBlockLinkListNode *pxBlockToInsert);
 
 	public:
 		/// @brief 构造一个基于 freertos 的 heap4 的堆管理器。
@@ -82,8 +82,8 @@ namespace freertos
 		Heap4(uint8_t *buffer, size_t size);
 
 		/* Create a couple of list links to mark the start and end of the list. */
-		BlockLink_t _head_element;
-		BlockLink_t *_tail_element = nullptr;
+		MemoryBlockLinkListNode _head_element;
+		MemoryBlockLinkListNode *_tail_element = nullptr;
 
 		/* Keeps track of the number of calls to allocate and free memory as well as the
 		 * number of free bytes remaining, but says nothing about fragmentation. */
