@@ -18,33 +18,33 @@ namespace freertos
 #pragma region constexpr
 
 		/* Check if multiplying a and b will result in overflow. */
-		bool constexpr HeapMultiplyWillOverflow(size_t a, size_t b)
+		constexpr bool HeapMultiplyWillOverflow(size_t a, size_t b)
 		{
 			return ((a) > 0) && ((b) > (SIZE_MAX / (a)));
 		}
 
 		/* Check if adding a and b will result in overflow. */
-		bool constexpr HeapAddWillOverflow(size_t a, size_t b)
+		constexpr bool HeapAddWillOverflow(size_t a, size_t b)
 		{
 			return (a) > (SIZE_MAX - (b));
 		}
 
-		bool constexpr HeapBlockSizeIsValid(size_t _size)
+		constexpr bool HeapBlockSizeIsValid(size_t _size)
 		{
 			return (_size & base::bit::MSB<size_t>()) == 0;
 		}
 
-		bool constexpr HeapBlockIsAllocated(base::heap::MemoryBlockLinkListNode *pxBlock)
+		constexpr bool HeapBlockIsAllocated(base::heap::MemoryBlockLinkListNode *pxBlock)
 		{
 			return ((pxBlock->_size) & base::bit::MSB<size_t>()) != 0;
 		}
 
-		void constexpr HeapAllocateBlock(base::heap::MemoryBlockLinkListNode *pxBlock)
+		constexpr void HeapAllocateBlock(base::heap::MemoryBlockLinkListNode *pxBlock)
 		{
 			(pxBlock->_size) |= base::bit::MSB<size_t>();
 		}
 
-		void constexpr HeapFreeBlock(base::heap::MemoryBlockLinkListNode *pxBlock)
+		constexpr void HeapFreeBlock(base::heap::MemoryBlockLinkListNode *pxBlock)
 		{
 			(pxBlock->_size) &= ~base::bit::MSB<size_t>();
 		}
