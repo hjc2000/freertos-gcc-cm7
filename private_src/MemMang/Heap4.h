@@ -31,22 +31,22 @@ namespace freertos
 
 		bool constexpr HeapBlockSizeIsValid(size_t _size)
 		{
-			return ((_size)&base::heap::SizeTypeMsbMask()) == 0;
+			return (_size & base::bit::MSB<size_t>()) == 0;
 		}
 
 		bool constexpr HeapBlockIsAllocated(base::heap::MemoryBlockLinkListNode *pxBlock)
 		{
-			return ((pxBlock->_size) & base::heap::SizeTypeMsbMask()) != 0;
+			return ((pxBlock->_size) & base::bit::MSB<size_t>()) != 0;
 		}
 
 		void constexpr HeapAllocateBlock(base::heap::MemoryBlockLinkListNode *pxBlock)
 		{
-			(pxBlock->_size) |= base::heap::SizeTypeMsbMask();
+			(pxBlock->_size) |= base::bit::MSB<size_t>();
 		}
 
 		void constexpr HeapFreeBlock(base::heap::MemoryBlockLinkListNode *pxBlock)
 		{
-			(pxBlock->_size) &= ~base::heap::SizeTypeMsbMask();
+			(pxBlock->_size) &= ~base::bit::MSB<size_t>();
 		}
 
 #pragma endregion
