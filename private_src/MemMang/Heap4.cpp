@@ -35,8 +35,8 @@ namespace
 
 void freertos::Heap4::InsertBlockIntoFreeList(base::heap::MemoryBlockLinkListNode *pxBlockToInsert)
 {
-	base::heap::MemoryBlockLinkListNode *pxIterator;
-	uint8_t *puc;
+	base::heap::MemoryBlockLinkListNode *pxIterator{};
+	uint8_t *puc{};
 
 	/* Iterate through the list until a block is found that has a higher address
 	 * than the block being inserted. */
@@ -53,10 +53,6 @@ void freertos::Heap4::InsertBlockIntoFreeList(base::heap::MemoryBlockLinkListNod
 	{
 		pxIterator->_size += pxBlockToInsert->_size;
 		pxBlockToInsert = pxIterator;
-	}
-	else
-	{
-		mtCOVERAGE_TEST_MARKER();
 	}
 
 	/* Do the block being inserted, and the block it is being inserted before
@@ -89,10 +85,6 @@ void freertos::Heap4::InsertBlockIntoFreeList(base::heap::MemoryBlockLinkListNod
 	{
 		pxIterator->_next_free_block = pxBlockToInsert;
 	}
-	else
-	{
-		mtCOVERAGE_TEST_MARKER();
-	}
 }
 
 freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
@@ -100,9 +92,9 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 	_buffer = buffer;
 	_size = size;
 
-	base::heap::MemoryBlockLinkListNode *pxFirstFreeBlock;
-	uint8_t *pucAlignedHeap;
-	portPOINTER_SIZE_TYPE uxAddress;
+	base::heap::MemoryBlockLinkListNode *pxFirstFreeBlock{};
+	uint8_t *pucAlignedHeap{};
+	portPOINTER_SIZE_TYPE uxAddress{};
 	size_t xTotalHeapSize = size;
 
 	/* Ensure the heap starts on a correctly aligned boundary. */
