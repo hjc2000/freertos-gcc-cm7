@@ -80,11 +80,4 @@ extern "C"
 	{
 		return Heap4().xMinimumEverFreeBytesRemaining;
 	}
-
-	/*-----------------------------------------------------------*/
-
-	void vPortInitialiseBlocks(void)
-	{
-		/* This just exists to keep the linker quiet. */
-	}
 }
