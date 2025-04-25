@@ -88,14 +88,14 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 	 * at the end of the heap space. */
 	uint8_t *tail_addr = base::bit::AlignDown(_buffer + _size - sizeof(base::heap::MemoryBlockLinkListNode));
 	_tail_element = reinterpret_cast<base::heap::MemoryBlockLinkListNode *>(tail_addr);
-	_tail_element->_size = 0;
 	_tail_element->_next_free_block = nullptr;
+	_tail_element->_size = 0;
 
 	/* To start with there is a single free block that is sized to take up the
 	 * entire heap space, minus the space taken by _tail_element. */
-	base::heap::MemoryBlockLinkListNode *pxFirstFreeBlock = (base::heap::MemoryBlockLinkListNode *)_buffer;
-	pxFirstFreeBlock->_size = static_cast<size_t>(tail_addr - _buffer);
+	base::heap::MemoryBlockLinkListNode *pxFirstFreeBlock = reinterpret_cast<base::heap::MemoryBlockLinkListNode *>(_buffer);
 	pxFirstFreeBlock->_next_free_block = _tail_element;
+	pxFirstFreeBlock->_size = static_cast<size_t>(tail_addr - _buffer);
 
 	/* Only one block exists - and it covers the entire usable heap space. */
 	xMinimumEverFreeBytesRemaining = pxFirstFreeBlock->_size;
