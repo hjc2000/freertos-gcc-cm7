@@ -3,19 +3,8 @@
 #include "base/embedded/heap/IHeap.h"
 #include "FreeRTOS.h"
 #include "Heap4.h"
-#include "task.h"
 #include <stdlib.h>
 #include <string.h>
-
-/* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
- * all the API functions to use the MPU wrappers.  That should only be done when
- * task.h is included from an application file. */
-#define MPU_WRAPPERS_INCLUDED_FROM_API_FILE
-#undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
-
-#if (configSUPPORT_DYNAMIC_ALLOCATION == 0)
-	#error This file must not be used if configSUPPORT_DYNAMIC_ALLOCATION is 0
-#endif
 
 /**
  * 释放内存时是否将这段内存的每个字节都设成 0.
