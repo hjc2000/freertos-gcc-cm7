@@ -1,6 +1,7 @@
 #pragma once
 #include "base/embedded/heap/FreeRtosHeap4.h"
 #include "base/embedded/heap/IHeap.h"
+#include "base/embedded/heap/MemoryBlockLinkListNode.h"
 
 struct xHeapStats;
 
@@ -12,9 +13,6 @@ namespace freertos
 	{
 	private:
 #pragma region constexpr
-		/// @brief 假设 1 个字节有 8 位。
-		static size_t constexpr _bit_count_per_byte = (size_t)8;
-
 		/* Max value that fits in a size_t type. */
 		static size_t constexpr _heap_size_max = ~((size_t)0);
 
@@ -34,7 +32,7 @@ namespace freertos
 		 * the allocation status of a block.  When MSB of the _size member of
 		 * an MemoryBlockLinkListNode structure is set then the block belongs to the application.
 		 * When the bit is free the block is still part of the free heap space. */
-		static size_t constexpr _heap_block_allocated_bitmask = ((size_t)1) << ((sizeof(size_t) * _bit_count_per_byte) - 1);
+		static size_t constexpr _heap_block_allocated_bitmask = ((size_t)1) << ((sizeof(size_t) * base::heap::BitCountPerByte()) - 1);
 
 		bool constexpr HeapBlockSizeIsValid(size_t _size)
 		{
