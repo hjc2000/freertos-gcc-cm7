@@ -1,8 +1,8 @@
 #include "base/define.h"
 #include "base/embedded/heap/heap.h"
+#include "base/embedded/heap/Heap4.h"
 #include "base/embedded/heap/IHeap.h"
 #include "FreeRTOS.h"
-#include "Heap4.h"
 #include <stdlib.h>
 #include <string.h>
 
