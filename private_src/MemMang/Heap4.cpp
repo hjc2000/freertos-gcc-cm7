@@ -9,6 +9,7 @@
 #include "Heap4.h"
 #include "base/bit/bit.h"
 #include "base/embedded/heap/MemoryBlockLinkListNode.h"
+#include "base/task/task.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include <cstddef>
@@ -108,7 +109,6 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 	base::heap::MemoryBlockLinkListNode *pxPreviousBlock;
 	base::heap::MemoryBlockLinkListNode *pxNewBlockLink;
 	void *pvReturn = nullptr;
-	size_t xAdditionalRequiredSize;
 
 	vTaskSuspendAll();
 	{
@@ -125,7 +125,9 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 			/* The wanted size must be increased so it can contain a MemoryBlockLinkListNode
 			 * structure in addition to the requested amount of bytes. Some
 			 * additional increment may also be needed for alignment. */
-			xAdditionalRequiredSize = base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
+			size_t xAdditionalRequiredSize = base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() +
+											 portBYTE_ALIGNMENT -
+											 (xWantedSize & portBYTE_ALIGNMENT_MASK);
 
 			if (!base::heap::HeapAddWillOverflow(xWantedSize, xAdditionalRequiredSize))
 			{
