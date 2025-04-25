@@ -66,18 +66,4 @@ extern "C"
 	{
 		base::heap::Free(pv);
 	}
-
-	/*-----------------------------------------------------------*/
-
-	size_t xPortGetFreeHeapSize(void)
-	{
-		return Heap4().xFreeBytesRemaining;
-	}
-
-	/*-----------------------------------------------------------*/
-
-	size_t xPortGetMinimumEverFreeHeapSize(void)
-	{
-		return Heap4().xMinimumEverFreeBytesRemaining;
-	}
 }
