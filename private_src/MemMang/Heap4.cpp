@@ -7,6 +7,7 @@
  * memory management pages of https://www.FreeRTOS.org for more information.
  */
 #include "Heap4.h"
+#include "base/bit/bit.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -24,15 +25,11 @@
 
 namespace
 {
-	/* The size of the structure placed at the beginning of each allocated memory
-	 * block must by correctly byte aligned. */
-	size_t constexpr _size_of_heap_block_linklist_element = (sizeof(base::heap::MemoryBlockLinkListNode) + ((size_t)(portBYTE_ALIGNMENT - 1))) & ~((size_t)portBYTE_ALIGNMENT_MASK);
-
 	/// @brief 堆块的最小大小。
-	/// @note 将 _size_of_heap_block_linklist_element 左移 1 位，即乘 2，说明最小大小定为
-	/// _size_of_heap_block_linklist_element 的 2 倍。这可能是因为如果块太小了，链表的空间利用率
+	/// @note 将 base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() 左移 1 位，即乘 2，说明最小大小定为
+	/// base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() 的 2 倍。这可能是因为如果块太小了，链表的空间利用率
 	/// 很低，链表节点本身占用的内存都比指向的内存块大了，那这块内存就不值得用一个链表节点去指向它。
-	size_t constexpr _heap_minimum_block_size = ((size_t)(_size_of_heap_block_linklist_element << 1));
+	size_t constexpr _heap_minimum_block_size = ((size_t)(base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() << 1));
 
 } // namespace
 
@@ -128,7 +125,7 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 	/* _tail_element is used to mark the end of the list of free blocks and is inserted
 	 * at the end of the heap space. */
 	uxAddress = ((portPOINTER_SIZE_TYPE)pucAlignedHeap) + xTotalHeapSize;
-	uxAddress -= _size_of_heap_block_linklist_element;
+	uxAddress -= base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>();
 	uxAddress &= ~((portPOINTER_SIZE_TYPE)portBYTE_ALIGNMENT_MASK);
 	_tail_element = (base::heap::MemoryBlockLinkListNode *)uxAddress;
 	_tail_element->_size = 0;
@@ -172,7 +169,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 			/* The wanted size must be increased so it can contain a MemoryBlockLinkListNode
 			 * structure in addition to the requested amount of bytes. Some
 			 * additional increment may also be needed for alignment. */
-			xAdditionalRequiredSize = _size_of_heap_block_linklist_element + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
+			xAdditionalRequiredSize = base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>() + portBYTE_ALIGNMENT - (xWantedSize & portBYTE_ALIGNMENT_MASK);
 
 			if (!base::heap::HeapAddWillOverflow(xWantedSize, xAdditionalRequiredSize))
 			{
@@ -213,7 +210,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 				{
 					/* Return the memory space pointed to - jumping over the
 					 * MemoryBlockLinkListNode structure at its start. */
-					pvReturn = (void *)(((uint8_t *)pxPreviousBlock->_next_free_block) + _size_of_heap_block_linklist_element);
+					pvReturn = (void *)(((uint8_t *)pxPreviousBlock->_next_free_block) + base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>());
 
 					/* This block is being returned for use so must be taken out
 					 * of the list of free blocks. */
@@ -305,7 +302,7 @@ void freertos::Heap4::Free(void *pv)
 	{
 		/* The memory being freed will have an MemoryBlockLinkListNode structure immediately
 		 * before it. */
-		puc -= _size_of_heap_block_linklist_element;
+		puc -= base::bit::GetAlignedSize<base::heap::MemoryBlockLinkListNode>();
 
 		/* This casting is to keep the compiler from issuing warnings. */
 		pxLink = (base::heap::MemoryBlockLinkListNode *)puc;
