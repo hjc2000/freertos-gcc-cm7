@@ -1,7 +1,9 @@
 #pragma once
+#include "base/bit/bit.h"
 #include "base/embedded/heap/FreeRtosHeap4.h"
 #include "base/embedded/heap/IHeap.h"
 #include "base/embedded/heap/MemoryBlockLinkListNode.h"
+#include <cstddef>
 
 struct xHeapStats;
 
@@ -32,7 +34,7 @@ namespace freertos
 		 * the allocation status of a block.  When MSB of the _size member of
 		 * an MemoryBlockLinkListNode structure is set then the block belongs to the application.
 		 * When the bit is free the block is still part of the free heap space. */
-		static size_t constexpr _heap_block_allocated_bitmask = ((size_t)1) << ((sizeof(size_t) * base::heap::BitCountPerByte()) - 1);
+		static size_t constexpr _heap_block_allocated_bitmask = static_cast<size_t>(base::bit::Bit((sizeof(size_t) * 8) - 1));
 
 		bool constexpr HeapBlockSizeIsValid(size_t _size)
 		{
