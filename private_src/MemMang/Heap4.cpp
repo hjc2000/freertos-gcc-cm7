@@ -151,10 +151,6 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 			// 已被构造函数取代。
 			//  prvHeapInit();
 		}
-		else
-		{
-			mtCOVERAGE_TEST_MARKER();
-		}
 
 		if (xWantedSize > 0)
 		{
@@ -171,10 +167,6 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 			{
 				xWantedSize = 0;
 			}
-		}
-		else
-		{
-			mtCOVERAGE_TEST_MARKER();
 		}
 
 		/* Check the block size we are trying to allocate is not so large that the
@@ -227,20 +219,12 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 						/* Insert the new block into the list of free blocks. */
 						InsertBlockIntoFreeList(pxNewBlockLink);
 					}
-					else
-					{
-						mtCOVERAGE_TEST_MARKER();
-					}
 
 					xFreeBytesRemaining -= pxBlock->_size;
 
 					if (xFreeBytesRemaining < xMinimumEverFreeBytesRemaining)
 					{
 						xMinimumEverFreeBytesRemaining = xFreeBytesRemaining;
-					}
-					else
-					{
-						mtCOVERAGE_TEST_MARKER();
 					}
 
 					/* The block is being returned - it is allocated and owned
@@ -249,19 +233,7 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 					pxBlock->_next_free_block = NULL;
 					xNumberOfSuccessfulAllocations++;
 				}
-				else
-				{
-					mtCOVERAGE_TEST_MARKER();
-				}
 			}
-			else
-			{
-				mtCOVERAGE_TEST_MARKER();
-			}
-		}
-		else
-		{
-			mtCOVERAGE_TEST_MARKER();
 		}
 
 		traceMALLOC(pvReturn, xWantedSize);
@@ -273,10 +245,6 @@ void *freertos::Heap4::Malloc(size_t xWantedSize)
 		if (pvReturn == NULL)
 		{
 			vApplicationMallocFailedHook();
-		}
-		else
-		{
-			mtCOVERAGE_TEST_MARKER();
 		}
 	}
 #endif /* if ( configUSE_MALLOC_FAILED_HOOK == 1 ) */
@@ -320,14 +288,6 @@ void freertos::Heap4::Free(void *pv)
 				}
 				(void)xTaskResumeAll();
 			}
-			else
-			{
-				mtCOVERAGE_TEST_MARKER();
-			}
-		}
-		else
-		{
-			mtCOVERAGE_TEST_MARKER();
 		}
 	}
 }
