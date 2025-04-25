@@ -80,7 +80,7 @@ freertos::Heap4::Heap4(uint8_t *buffer, size_t size)
 
 	/* _head_element is used to hold a pointer to the first item in the list of free
 	 * blocks.  The void cast is used to prevent compiler warnings. */
-	_head_element._next_free_block = (base::heap::MemoryBlockLinkListNode *)_buffer;
+	_head_element._next_free_block = reinterpret_cast<base::heap::MemoryBlockLinkListNode *>(_buffer);
 	_head_element._size = 0;
 
 	/* _tail_element is used to mark the end of the list of free blocks and is inserted
