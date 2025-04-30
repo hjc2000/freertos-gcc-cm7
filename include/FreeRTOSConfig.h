@@ -10,22 +10,30 @@ extern "C"
 
 	/* #region 接口函数 */
 
+	///
 	/// @brief 获取 SysTick 的频率
 	///
 	/// @param sync_to_cpu 是否同步到 CPU
-	/// 	@li 为 true 表示要获取 SysTick 同步到 CPU 频率时的频率，也即希望获取 CPU 频率。
-	/// 	@li 为 false 表示要获取的是 SysTick 不同步到 CPU 时的频率。例如对于 stm32f103，就是
-	/// 		获取系统时钟 8 分频后的频率。（系统时钟是 CPU 的时钟源，系统时钟频率等于 CPU 频率）
+	/// 	@note arm 地 cortex-m 架构的内核都有 systick, 并且支持配置成 2 种频率，一种频率是
+	/// 	与 CPU 同频，另一种是分频，比 CPU 的频率低。
+	///
+	/// 	@note 为 true 表示要获取 SysTick 同步到 CPU 频率时的频率，也即希望获取 CPU 频率。
+	///
+	/// 	@note 为 false 表示要获取的是 SysTick 不同步到 CPU 时的频率。例如对于 stm32f103，就是
+	/// 	获取系统时钟 8 分频后的频率。（系统时钟是 CPU 的时钟源，系统时钟频率等于 CPU 频率）
 	///
 	/// @return SysTick 在 sync_to_cpu 指示的模式下的频率。
-	/// 	@li 如果 sync_to_cpu 为 true ，返回 CPU 频率。
-	/// 	@li 如果 sync_to_cpu 为 false，返回与 CPU 频率不同的那个频率。
+	/// 	@note 如果 sync_to_cpu 为 true ，返回 CPU 频率。
+	/// 	@note 如果 sync_to_cpu 为 false，返回与 CPU 频率不同的那个频率。
+	///
 	uint32_t freertos_get_systic_clock_freq(uint8_t sync_to_cpu);
 
-	/**
-	 * @brief 位于 libfreertos.a 中的一个函数，并没有暴露到头文件中。
-	 * 用户需要在 SysTick 的溢出中断处理函数中调用。在 arm 工具链的启动文件中，
-	 * 这个函数被汇编确定为 SysTick_Handler ，用户需要定义这个函数并实现为类似：
+	///
+	/// @brief 位于 libfreertos.a 中的一个函数，并没有暴露到头文件中。
+	/// 用户需要在 SysTick 的溢出中断处理函数中调用。在 arm 工具链的启动文件中，
+	/// 这个函数被汇编确定为 SysTick_Handler ，用户需要定义这个函数并实现为类似：
+	///
+	/*
 
 		void SysTick_Handler()
 		{
@@ -36,7 +44,8 @@ extern "C"
 			}
 		}
 
-	*/
+	 */
+	///
 	void xPortSysTickHandler();
 
 	/* #endregion */
