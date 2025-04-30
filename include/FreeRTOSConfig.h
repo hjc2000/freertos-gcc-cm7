@@ -13,10 +13,22 @@ extern "C"
 	///
 	/// @brief 获取 SysTick 的频率
 	///
-	/// @param sync_to_cpu 是否同步到 CPU
-	/// 	@note arm 地 cortex-m 架构的内核都有 systick, 并且支持配置成 2 种频率，一种频率是
-	/// 	与 CPU 同频，另一种是分频，比 CPU 的频率低。
+	/// @note arm cortex-m 系列 CPU 有一个 systick ，里面有一个 CTRL 寄存器，其中的 bit2
+	/// 可以用来控制 systick 的时钟源。
+	/// 	@li 为 1 时表示使用与 CPU 相同的时钟源，即 systick 的频率会与 CPU 相同。
+	/// 	@li 为 0 则表示不要求 systick 的频率与 CPU 相同。
 	///
+	/// 所以 bit2 可以理解为同步控制位，置 1 后会让 systick 时钟与 CPU 同步。
+	///
+	/// @note 是否让 systick 同步到 CPU 频率是 freertos 控制的。详见下面的 SYNC_TO_CPU 宏定义。
+	///
+	/// @note 注意：有的单片机无法让 systick 使用与 CPU 不同频率的时钟源。例如 stm32h743，
+	/// 就算你将 systick 的 CTRL 寄存器的 bit2 设置为 0 ，它也会使用与 CPU 相同的系统时钟源，
+	/// 不会对它进行 8 分频。虽然 cubemx 的时钟树上显示出了 8 分频，但是实际上是分不了的，
+	/// 配置好 8 分频后, cubemx 生成的代码中也没有关于 8 分频的代码。而且，经过实测，无论将 bit2
+	/// 设置成什么, systick 的频率一直等于系统时钟的频率，即与 CPU 同频率。
+	///
+	/// @param sync_to_cpu 是否同步到 CPU
 	/// 	@note 为 true 表示要获取 SysTick 同步到 CPU 频率时的频率，也即希望获取 CPU 频率。
 	///
 	/// 	@note 为 false 表示要获取的是 SysTick 不同步到 CPU 时的频率。例如对于 stm32f103，就是
@@ -59,24 +71,7 @@ extern "C"
 /* 1: 使能tickless低功耗模式, 默认: 0 */
 #define configUSE_TICKLESS_IDLE 0
 
-	/* arm cortex-m 系列 CPU 有一个 Systick ，里面有一个 CTRL 寄存器，其中的 bit2
-	 * 可以用来控制 Systick 的时钟源。
-	 * 为 1 时表示使用与 CPU 相同的时钟源，即 Systick 的频率会与 CPU 相同。
-	 * 为 0 则表示不要求 Systick 的频率与 CPU 相同。
-	 *
-	 * 所以 bit2 可以理解为同步控制位，置 1 后会让 Systick 时钟与 CPU 同步。
-	 *
-	 * 在 freertos 中，如果需要让 Systick 与 CPU 同步，则宏定义 configCPU_CLOCK_HZ ，
-	 * 如果不要求 Systick 与 CPU 同步，则宏定义 configSYSTICK_CLOCK_HZ ，
-	 * freertos 会根据你的定义去修改 Systick 的 CTRL 寄存器。
-	 *
-	 * 注意：有的单片机无法让 Systick 使用与 CPU 不同频率的时钟源。例如 stm32h743，就算你将 Systick
-	 * 的 CTRL 寄存器的 bit2 设置为 0 ，它也会使用与 CPU 相同的系统时钟源，不会对它进行 8 分频。虽然 cubemx
-	 * 的时钟树上显示出了 8 分频，但是实际上是分不了的，配置好 8 分频后，cubemx 生成的代码中也没有关于 8 分频的
-	 * 代码。而且，经过实测，无论将 bit2 设置成什么，Systick 的频率一直等于系统时钟的频率，即与 CPU 同频率。
-	 */
-
-/* 是否让 Systick 的频率同步到 CPU 频率。 */
+/* 是否让 systick 的频率同步到 CPU 频率。 */
 #define SYNC_TO_CPU 1
 
 #if SYNC_TO_CPU
@@ -179,29 +174,40 @@ extern "C"
 #define configUSE_DAEMON_TASK_STARTUP_HOOK 0
 #pragma endregion
 
-#pragma region 运行时间和任务状态统计
-/* 1: 使能任务运行时间统计功能, 默认: 0 */
+	/* #region 运行时间和任务状态统计 */
+
+///
+/// @brief 1: 使能任务运行时间统计功能, 默认: 0
+///
+///
 #define configGENERATE_RUN_TIME_STATS 0
+
 #if configGENERATE_RUN_TIME_STATS
 	#include "./BSP/TIMER/btim.h"
 	#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() ConfigureTimeForRunTimeStats()
 	extern uint32_t FreeRTOSRunTimeTicks;
 	#define portGET_RUN_TIME_COUNTER_VALUE() FreeRTOSRunTimeTicks
 #endif
-/* 1: 使能可视化跟踪调试, 默认: 0 */
+
+///
+/// @brief 1: 使能可视化跟踪调试, 默认: 0
+///
+///
 #define configUSE_TRACE_FACILITY 1
-/* 1: configUSE_TRACE_FACILITY为1时，会编译vTaskList()和vTaskGetRunTimeStats()函数, 默认: 0 */
+
+///
+/// @brief 1: configUSE_TRACE_FACILITY为1时，会编译vTaskList()和vTaskGetRunTimeStats()函数, 默认: 0
+///
+///
 #define configUSE_STATS_FORMATTING_FUNCTIONS 1
-#pragma endregion
+
+	/* #endregion */
 
 #pragma region 协程
+
 /* 1: 启用协程, 默认: 0 */
 #define configUSE_CO_ROUTINES 0
 
-/* 定义协程的最大优先级, 最大优先级=configMAX_CO_ROUTINE_PRIORITIES-1,
- * 无默认configUSE_CO_ROUTINES为1时需定义
- */
-#define configMAX_CO_ROUTINE_PRIORITIES 2
 #pragma endregion
 
 /* 软件定时器相关定义 */
