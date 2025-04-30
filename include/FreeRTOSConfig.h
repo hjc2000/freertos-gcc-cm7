@@ -284,10 +284,16 @@ extern "C"
 
 	/* #region FreeRTOS 中断服务函数 */
 
-/* 定义成与启动文件中中断向量表所引用的函数一样的名称。HAL 提供的启动文件中是 PendSV_Handler */
+///
+/// @brief 定义成与启动文件中中断向量表所引用的函数一样的名称。HAL 提供的启动文件中是 PendSV_Handler
+///
+///
 #define xPortPendSVHandler PendSV_Handler
 
-/* 定义成与启动文件中中断向量表所引用的函数一样的名称。HAL 提供的启动文件中是 SVC_Handler */
+///
+/// @brief 定义成与启动文件中中断向量表所引用的函数一样的名称。HAL 提供的启动文件中是 SVC_Handler
+///
+///
 #define vPortSVCHandler SVC_Handler
 
 	/* #endregion */
