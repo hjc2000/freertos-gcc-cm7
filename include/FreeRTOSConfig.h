@@ -264,7 +264,8 @@ extern "C"
 #define INCLUDE_xSemaphoreGetMutexHolder 1
 #pragma endregion
 
-#pragma region 中断优先级
+	/* #region 中断优先级 */
+
 /*
  * 设置为 HAL 库中的 __NVIC_PRIO_BITS 的值。
  * 如果查找符号，找到了很多个，可以将 __NVIC_PRIO_BITS 放到源文件中，
@@ -280,7 +281,8 @@ extern "C"
 #define configKERNEL_INTERRUPT_PRIORITY (configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY (configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY << (8 - configPRIO_BITS))
 #define configMAX_API_CALL_INTERRUPT_PRIORITY configMAX_SYSCALL_INTERRUPT_PRIORITY
-#pragma endregion
+
+	/* #endregion */
 
 	/* #region FreeRTOS 中断服务函数 */
 
