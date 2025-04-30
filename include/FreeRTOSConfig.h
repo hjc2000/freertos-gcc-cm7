@@ -203,13 +203,6 @@ extern "C"
 
 	/* #endregion */
 
-#pragma region 协程
-
-/* 1: 启用协程, 默认: 0 */
-#define configUSE_CO_ROUTINES 0
-
-#pragma endregion
-
 /* 软件定时器相关定义 */
 #define configUSE_TIMERS 1                                          /* 1: 使能软件定时器, 默认: 0 */
 #define configTIMER_TASK_PRIORITY (configMAX_PRIORITIES - 1)        /* 定义软件定时器任务的优先级, 无默认configUSE_TIMERS为1时需定义 */
@@ -297,7 +290,8 @@ extern "C"
 #define vPortSVCHandler SVC_Handler
 #pragma endregion
 
-/* 断言 */
+	/* #region 断言 */
+
 #define vAssertCalled(char, int) printf("freertos 内部发生了错误: %s, %d\r\n", char, int)
 
 #define configASSERT(x)                    \
@@ -305,6 +299,8 @@ extern "C"
 	{                                      \
 		vAssertCalled(__FILE__, __LINE__); \
 	}
+
+	/* #endregion */
 
 #ifdef __cplusplus
 }
