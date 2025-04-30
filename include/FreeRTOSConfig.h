@@ -6,38 +6,40 @@ extern "C"
 #endif // _cplusplus
 
 #include <stdint.h>
-#include <stdio.h>
+#include <stdio.h> // IWYU pragma: keep
 
-#pragma region 接口函数
-    /// @brief 获取 SysTick 的频率
-    ///
-    /// @param sync_to_cpu 是否同步到 CPU
-    /// 	@li 为 true 表示要获取 SysTick 同步到 CPU 频率时的频率，也即希望获取 CPU 频率。
-    /// 	@li 为 false 表示要获取的是 SysTick 不同步到 CPU 时的频率。例如对于 stm32f103，就是
-    /// 		获取系统时钟 8 分频后的频率。（系统时钟是 CPU 的时钟源，系统时钟频率等于 CPU 频率）
-    ///
-    /// @return SysTick 在 sync_to_cpu 指示的模式下的频率。
-    /// 	@li 如果 sync_to_cpu 为 true ，返回 CPU 频率。
-    /// 	@li 如果 sync_to_cpu 为 false，返回与 CPU 频率不同的那个频率。
-    uint32_t freertos_get_systic_clock_freq(uint8_t sync_to_cpu);
+	/* #region 接口函数 */
 
-    /**
-     * @brief 位于 libfreertos.a 中的一个函数，并没有暴露到头文件中。
-     * 用户需要在 SysTick 的溢出中断处理函数中调用。在 arm 工具链的启动文件中，
-     * 这个函数被汇编确定为 SysTick_Handler ，用户需要定义这个函数并实现为类似：
+	/// @brief 获取 SysTick 的频率
+	///
+	/// @param sync_to_cpu 是否同步到 CPU
+	/// 	@li 为 true 表示要获取 SysTick 同步到 CPU 频率时的频率，也即希望获取 CPU 频率。
+	/// 	@li 为 false 表示要获取的是 SysTick 不同步到 CPU 时的频率。例如对于 stm32f103，就是
+	/// 		获取系统时钟 8 分频后的频率。（系统时钟是 CPU 的时钟源，系统时钟频率等于 CPU 频率）
+	///
+	/// @return SysTick 在 sync_to_cpu 指示的模式下的频率。
+	/// 	@li 如果 sync_to_cpu 为 true ，返回 CPU 频率。
+	/// 	@li 如果 sync_to_cpu 为 false，返回与 CPU 频率不同的那个频率。
+	uint32_t freertos_get_systic_clock_freq(uint8_t sync_to_cpu);
 
-        void SysTick_Handler()
-        {
-            HAL_IncTick();
-            if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
-            {
-                xPortSysTickHandler();
-            }
-        }
+	/**
+	 * @brief 位于 libfreertos.a 中的一个函数，并没有暴露到头文件中。
+	 * 用户需要在 SysTick 的溢出中断处理函数中调用。在 arm 工具链的启动文件中，
+	 * 这个函数被汇编确定为 SysTick_Handler ，用户需要定义这个函数并实现为类似：
 
-    */
-    void xPortSysTickHandler();
-#pragma endregion
+		void SysTick_Handler()
+		{
+			HAL_IncTick();
+			if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)
+			{
+				xPortSysTickHandler();
+			}
+		}
+
+	*/
+	void xPortSysTickHandler();
+
+	/* #endregion */
 
 /* 1: 抢占式调度器, 0: 协程式调度器, 无默认需定义 */
 #define configUSE_PREEMPTION 1
@@ -48,30 +50,30 @@ extern "C"
 /* 1: 使能tickless低功耗模式, 默认: 0 */
 #define configUSE_TICKLESS_IDLE 0
 
-    /* arm cortex-m 系列 CPU 有一个 Systick ，里面有一个 CTRL 寄存器，其中的 bit2
-     * 可以用来控制 Systick 的时钟源。
-     * 为 1 时表示使用与 CPU 相同的时钟源，即 Systick 的频率会与 CPU 相同。
-     * 为 0 则表示不要求 Systick 的频率与 CPU 相同。
-     *
-     * 所以 bit2 可以理解为同步控制位，置 1 后会让 Systick 时钟与 CPU 同步。
-     *
-     * 在 freertos 中，如果需要让 Systick 与 CPU 同步，则宏定义 configCPU_CLOCK_HZ ，
-     * 如果不要求 Systick 与 CPU 同步，则宏定义 configSYSTICK_CLOCK_HZ ，
-     * freertos 会根据你的定义去修改 Systick 的 CTRL 寄存器。
-     *
-     * 注意：有的单片机无法让 Systick 使用与 CPU 不同频率的时钟源。例如 stm32h743，就算你将 Systick
-     * 的 CTRL 寄存器的 bit2 设置为 0 ，它也会使用与 CPU 相同的系统时钟源，不会对它进行 8 分频。虽然 cubemx
-     * 的时钟树上显示出了 8 分频，但是实际上是分不了的，配置好 8 分频后，cubemx 生成的代码中也没有关于 8 分频的
-     * 代码。而且，经过实测，无论将 bit2 设置成什么，Systick 的频率一直等于系统时钟的频率，即与 CPU 同频率。
-     */
+	/* arm cortex-m 系列 CPU 有一个 Systick ，里面有一个 CTRL 寄存器，其中的 bit2
+	 * 可以用来控制 Systick 的时钟源。
+	 * 为 1 时表示使用与 CPU 相同的时钟源，即 Systick 的频率会与 CPU 相同。
+	 * 为 0 则表示不要求 Systick 的频率与 CPU 相同。
+	 *
+	 * 所以 bit2 可以理解为同步控制位，置 1 后会让 Systick 时钟与 CPU 同步。
+	 *
+	 * 在 freertos 中，如果需要让 Systick 与 CPU 同步，则宏定义 configCPU_CLOCK_HZ ，
+	 * 如果不要求 Systick 与 CPU 同步，则宏定义 configSYSTICK_CLOCK_HZ ，
+	 * freertos 会根据你的定义去修改 Systick 的 CTRL 寄存器。
+	 *
+	 * 注意：有的单片机无法让 Systick 使用与 CPU 不同频率的时钟源。例如 stm32h743，就算你将 Systick
+	 * 的 CTRL 寄存器的 bit2 设置为 0 ，它也会使用与 CPU 相同的系统时钟源，不会对它进行 8 分频。虽然 cubemx
+	 * 的时钟树上显示出了 8 分频，但是实际上是分不了的，配置好 8 分频后，cubemx 生成的代码中也没有关于 8 分频的
+	 * 代码。而且，经过实测，无论将 bit2 设置成什么，Systick 的频率一直等于系统时钟的频率，即与 CPU 同频率。
+	 */
 
 /* 是否让 Systick 的频率同步到 CPU 频率。 */
 #define SYNC_TO_CPU 1
 
 #if SYNC_TO_CPU
-#define configCPU_CLOCK_HZ freertos_get_systic_clock_freq(1)
+	#define configCPU_CLOCK_HZ freertos_get_systic_clock_freq(1)
 #else
-#define configSYSTICK_CLOCK_HZ freertos_get_systic_clock_freq(0)
+	#define configSYSTICK_CLOCK_HZ freertos_get_systic_clock_freq(0)
 #endif
 
 /* 定义系统时钟节拍频率, 单位: Hz, 无默认需定义 */
@@ -172,10 +174,10 @@ extern "C"
 /* 1: 使能任务运行时间统计功能, 默认: 0 */
 #define configGENERATE_RUN_TIME_STATS 0
 #if configGENERATE_RUN_TIME_STATS
-#include "./BSP/TIMER/btim.h"
-#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() ConfigureTimeForRunTimeStats()
-    extern uint32_t FreeRTOSRunTimeTicks;
-#define portGET_RUN_TIME_COUNTER_VALUE() FreeRTOSRunTimeTicks
+	#include "./BSP/TIMER/btim.h"
+	#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() ConfigureTimeForRunTimeStats()
+	extern uint32_t FreeRTOSRunTimeTicks;
+	#define portGET_RUN_TIME_COUNTER_VALUE() FreeRTOSRunTimeTicks
 #endif
 /* 1: 使能可视化跟踪调试, 默认: 0 */
 #define configUSE_TRACE_FACILITY 1
@@ -284,10 +286,10 @@ extern "C"
 #define vAssertCalled(char, int) printf("freertos 内部发生了错误: %s, %d\r\n", char, int)
 
 #define configASSERT(x)                    \
-    if ((x) == 0)                          \
-    {                                      \
-        vAssertCalled(__FILE__, __LINE__); \
-    }
+	if ((x) == 0)                          \
+	{                                      \
+		vAssertCalled(__FILE__, __LINE__); \
+	}
 
 #ifdef __cplusplus
 }
