@@ -282,13 +282,15 @@ extern "C"
 #define configMAX_API_CALL_INTERRUPT_PRIORITY configMAX_SYSCALL_INTERRUPT_PRIORITY
 #pragma endregion
 
-#pragma region FreeRTOS中断服务函数
+	/* #region FreeRTOS 中断服务函数 */
+
 /* 定义成与启动文件中中断向量表所引用的函数一样的名称。HAL 提供的启动文件中是 PendSV_Handler */
 #define xPortPendSVHandler PendSV_Handler
 
 /* 定义成与启动文件中中断向量表所引用的函数一样的名称。HAL 提供的启动文件中是 SVC_Handler */
 #define vPortSVCHandler SVC_Handler
-#pragma endregion
+
+	/* #endregion */
 
 	/* #region 断言 */
 
