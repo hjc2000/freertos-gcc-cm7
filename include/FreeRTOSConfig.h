@@ -131,23 +131,11 @@ extern "C"
 	///
 #define configUSE_COUNTING_SEMAPHORES 1
 
-/* 定义可以注册的信号量和消息队列的个数, 默认: 0 */
-#define configQUEUE_REGISTRY_SIZE 8
-
 /* 1: 使能队列集, 默认: 0 */
 #define configUSE_QUEUE_SETS 1
 
-/* 1: 使能时间片调度, 默认: 1 */
-#define configUSE_TIME_SLICING 1
-
-/* 1: 任务创建时分配Newlib的重入结构体, 默认: 0 */
-#define configUSE_NEWLIB_REENTRANT 0
-
 /* 1: 使能兼容老版本, 默认: 1 */
 #define configENABLE_BACKWARD_COMPATIBILITY 0
-
-/* 定义线程本地存储指针的个数, 默认: 0 */
-#define configNUM_THREAD_LOCAL_STORAGE_POINTERS 0
 
 /* 定义任务堆栈深度的数据类型, 默认: uint16_t */
 #define configSTACK_DEPTH_TYPE uint16_t
