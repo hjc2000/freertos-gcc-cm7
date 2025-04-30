@@ -176,10 +176,10 @@ extern "C"
 
 	/* #region 运行时间和任务状态统计 */
 
-///
-/// @brief 1: 使能任务运行时间统计功能, 默认: 0
-///
-///
+	///
+	/// @brief 1: 使能任务运行时间统计功能, 默认: 0
+	///
+	///
 #define configGENERATE_RUN_TIME_STATS 0
 
 #if configGENERATE_RUN_TIME_STATS
@@ -189,16 +189,16 @@ extern "C"
 	#define portGET_RUN_TIME_COUNTER_VALUE() FreeRTOSRunTimeTicks
 #endif
 
-///
-/// @brief 1: 使能可视化跟踪调试, 默认: 0
-///
-///
+	///
+	/// @brief 1: 使能可视化跟踪调试, 默认: 0
+	///
+	///
 #define configUSE_TRACE_FACILITY 1
 
-///
-/// @brief 1: configUSE_TRACE_FACILITY为1时，会编译vTaskList()和vTaskGetRunTimeStats()函数, 默认: 0
-///
-///
+	///
+	/// @brief 1: configUSE_TRACE_FACILITY为1时，会编译vTaskList()和vTaskGetRunTimeStats()函数, 默认: 0
+	///
+	///
 #define configUSE_STATS_FORMATTING_FUNCTIONS 1
 
 	/* #endregion */
@@ -284,16 +284,19 @@ extern "C"
 
 	/* #region FreeRTOS 中断服务函数 */
 
-///
-/// @brief 定义成与启动文件中中断向量表所引用的函数一样的名称。HAL 提供的启动文件中是 PendSV_Handler
-///
-///
+	///
+	/// @brief 定义成与启动文件中中断向量表所引用的函数一样的名称。
+	/// HAL 提供的启动文件中是 PendSV_Handler
+	///
+	///
 #define xPortPendSVHandler PendSV_Handler
 
-///
-/// @brief 定义成与启动文件中中断向量表所引用的函数一样的名称。HAL 提供的启动文件中是 SVC_Handler
-///
-///
+	///
+	/// @brief 定义成与启动文件中中断向量表所引用的函数一样的名称。
+	/// HAL 提供的启动文件中是 SVC_Handler
+	///
+	///
+	///
 #define vPortSVCHandler SVC_Handler
 
 	/* #endregion */
