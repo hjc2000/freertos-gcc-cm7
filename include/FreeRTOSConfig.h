@@ -113,17 +113,23 @@ extern "C"
 /* 定义任务通知数组的大小, 默认: 1 */
 #define configTASK_NOTIFICATION_ARRAY_ENTRIES 1
 
-/* 1: 使能互斥锁, 默认: 0 */
+	///
+	/// @brief 1: 使能互斥锁, 默认: 0
+	///
+	///
 #define configUSE_MUTEXES 1
 
-/* 1: 使能递归互斥锁, 默认: 0 */
+	///
+	/// @brief 1: 使能递归互斥锁, 默认: 0
+	///
+	///
 #define configUSE_RECURSIVE_MUTEXES 1
 
-/* 1: 使能计数信号量, 默认: 0 */
+	///
+	/// @brief 1: 使能计数信号量, 默认: 0
+	///
+	///
 #define configUSE_COUNTING_SEMAPHORES 1
-
-/* 已弃用!!! */
-#define configUSE_ALTERNATIVE_API 0
 
 /* 定义可以注册的信号量和消息队列的个数, 默认: 0 */
 #define configQUEUE_REGISTRY_SIZE 8
