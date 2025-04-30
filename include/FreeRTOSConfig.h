@@ -131,9 +131,6 @@ extern "C"
 	///
 #define configUSE_COUNTING_SEMAPHORES 1
 
-/* 1: 使能队列集, 默认: 0 */
-#define configUSE_QUEUE_SETS 1
-
 /* 1: 使能兼容老版本, 默认: 1 */
 #define configENABLE_BACKWARD_COMPATIBILITY 0
 
