@@ -68,7 +68,7 @@ extern "C"
 /* 1: 使用硬件计算下一个要运行的任务, 0: 使用软件算法计算下一个要运行的任务, 默认: 0 */
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
 
-/* 1: 使能tickless低功耗模式, 默认: 0 */
+/* 1: 使能 tickless 低功耗模式, 默认: 0 */
 #define configUSE_TICKLESS_IDLE 0
 
 /* 是否让 systick 的频率同步到 CPU 频率。 */
@@ -83,19 +83,28 @@ extern "C"
 /* 定义系统时钟节拍频率, 单位: Hz, 无默认需定义 */
 #define configTICK_RATE_HZ 1000
 
-/* 定义最大优先级数, 最大优先级=configMAX_PRIORITIES-1, 无默认需定义 */
+/* 定义最大优先级数, 最大优先级 = configMAX_PRIORITIES - 1, 无默认需定义 */
 #define configMAX_PRIORITIES 56
 
-/* 定义空闲任务的栈空间大小, 单位: Word, 无默认需定义 */
+/* 定义空闲任务的栈空间大小, 单位: 字。 无默认需定义 */
 #define configMINIMAL_STACK_SIZE 512
 
 /* 定义任务名最大字符数, 默认: 16 */
 #define configMAX_TASK_NAME_LEN 16
 
-/* 1: 定义系统时钟节拍计数器的数据类型为16位无符号数, 无默认需定义 */
+	///
+	/// @brief 1: 定义系统时钟节拍计数器的数据类型为 16 位无符号数, 无默认需定义。
+	///
+	/// @note 定义为 0 则 freertos 会使用 uint32_t 作为 TickType_t 的数据类型，
+	/// 定义为 1 则 freertos 会使用 uint16_t 作为 TickType_t 的数据类型。
+	///
+	///
 #define configUSE_16_BIT_TICKS 0
 
-/* 1: 使能在抢占式调度下,同优先级的任务能抢占空闲任务, 默认: 1 */
+	///
+	/// @brief 1: 使能在抢占式调度下, 同优先级的任务能抢占空闲任务, 默认: 1
+	///
+	///
 #define configIDLE_SHOULD_YIELD 1
 
 /* 1: 使能任务间直接的消息传递,包括信号量、事件标志组和消息邮箱, 默认: 1 */
@@ -140,24 +149,18 @@ extern "C"
 /* 定义消息缓冲区中消息长度的数据类型, 默认: size_t */
 #define configMESSAGE_BUFFER_LENGTH_TYPE size_t
 
-#pragma region 内存分配相关
-/* 1: 支持静态申请内存, 默认: 0 */
-#define configSUPPORT_STATIC_ALLOCATION 0
+	/* #region 内存分配相关 */
 
 /* 1: 支持动态申请内存, 默认: 1 */
 #define configSUPPORT_DYNAMIC_ALLOCATION 1
 
-/* FreeRTOS堆中可用的RAM总量, 单位: Byte, 无默认需定义 */
+/* FreeRTOS 堆中可用的 RAM 总量, 单位: Byte, 无默认需定义 */
 #define configTOTAL_HEAP_SIZE ((size_t)(200 * 1024))
 
-/* 1: 用户手动分配FreeRTOS内存堆(ucHeap), 默认: 0 */
-#define configAPPLICATION_ALLOCATED_HEAP 0
+	/* #endregion */
 
-/* 1: 用户自行实现任务创建时使用的内存申请与释放函数, 默认: 0 */
-#define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP 0
-#pragma endregion
+	/* #region 钩子函数 */
 
-#pragma region 钩子函数
 /* 1: 使能空闲任务钩子函数, 无默认需定义  */
 #define configUSE_IDLE_HOOK 0
 
@@ -170,9 +173,10 @@ extern "C"
 /* 1: 使能动态内存申请失败钩子函数, 默认: 0 */
 #define configUSE_MALLOC_FAILED_HOOK 0
 
-/* 1: 使能定时器服务任务首次执行前的钩子函数, 默认: 0 */
+	/* 1: 使能定时器服务任务首次执行前的钩子函数, 默认: 0 */
 #define configUSE_DAEMON_TASK_STARTUP_HOOK 0
-#pragma endregion
+
+	/* #endregion */
 
 	/* #region 运行时间和任务状态统计 */
 
@@ -203,11 +207,14 @@ extern "C"
 
 	/* #endregion */
 
-/* 软件定时器相关定义 */
+	/* #region 软件定时器相关定义 */
+
 #define configUSE_TIMERS 1                                          /* 1: 使能软件定时器, 默认: 0 */
 #define configTIMER_TASK_PRIORITY (configMAX_PRIORITIES - 1)        /* 定义软件定时器任务的优先级, 无默认configUSE_TIMERS为1时需定义 */
 #define configTIMER_QUEUE_LENGTH 5                                  /* 定义软件定时器命令队列的长度, 无默认configUSE_TIMERS为1时需定义 */
 #define configTIMER_TASK_STACK_DEPTH (configMINIMAL_STACK_SIZE * 2) /* 定义软件定时器任务的栈空间大小, 无默认configUSE_TIMERS为1时需定义 */
+
+	/* #endregion */
 
 	/* #region 可选功能 */
 
